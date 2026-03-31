@@ -2,10 +2,18 @@
   "name": "Blockchain",
   "version": "1.0.0",
   "type": "module",
+  "scripts": {
+    "build": "hardhat compile",
+    "clean": "hardhat clean",
+    "test": "hardhat test",
+    "test:ganache": "hardhat test --network ganache",
+    "test:localhost": "hardhat test --network localhost",
+    "ganache:start": "ganache --wallet.totalAccounts 10 --wallet.defaultBalance 1000 --chain.chainId 1337 --server.host 127.0.0.1 --server.port 8545",
+    "deploy:ganache": "hardhat run --network ganache scripts/deployCompliance.ts",
+    "deploy:localhost": "hardhat run --network localhost scripts/deployCompliance.ts"
+  },
   "devDependencies": {
-    "@nomicfoundation/hardhat-ethers": "^4.0.7",
-    "@nomicfoundation/hardhat-ignition": "^3.1.1",
-    "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.3",
+    "@nomicfoundation/hardhat-toolbox-mocha-ethers": "3.0.0",
     "@types/chai": "^5.2.3",
     "@types/chai-as-promised": "^8.0.2",
     "@types/mocha": "^10.0.10",
@@ -13,7 +21,8 @@
     "chai": "^6.2.2",
     "ethers": "^6.16.0",
     "forge-std": "github:foundry-rs/forge-std#v1.9.4",
-    "hardhat": "^3.3.0",
+    "ganache": "^7.9.2",
+    "hardhat": "3.3.0",
     "mocha": "^11.7.5",
     "typescript": "~5.8.0"
   }
