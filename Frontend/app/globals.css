@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(56, 146, 121, 0.24), transparent 30%),
+    radial-gradient(circle at top right, rgba(126, 240, 207, 0.12), transparent 18%),
+    #090d0d;
+  color: #f5f7f6;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.shell {
+  @apply mx-auto w-full max-w-7xl px-5 sm:px-6 lg:px-8;
+}
+
+.glass {
+  @apply border border-white/10 bg-white/[0.04] backdrop-blur-xl;
+}
+
+.section-label {
+  @apply inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium tracking-[0.18em] text-white/70 uppercase;
+}
+
+.headline {
+  @apply text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl;
+}
+
+.subcopy {
+  @apply max-w-2xl text-sm leading-7 text-white/65 sm:text-base;
+}
+
+.grid-lines {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.dot-fade {
+  background-image: theme("backgroundImage.dots");
+  background-size: 14px 14px;
+  mask-image: radial-gradient(circle at center, black 25%, transparent 70%);
+}
