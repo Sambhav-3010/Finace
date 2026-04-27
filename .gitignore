@@ -1,0 +1,28 @@
+RBI DOCS/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Env / secrets
+python-rag/.env
+.env
+
+# Data (large generated files)
+data/parsed/
+data/chunks/
+data/reports/
+
+# ML model cache
+.cache/
+huggingface/
+
+# Logs
+*.log
