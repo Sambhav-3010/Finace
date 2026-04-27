@@ -1,0 +1,150 @@
+"""
+Entry point: walks RBI DOCS/, parses every PDF, stores in MongoDB documents collection
+and saves raw parsed text to data/parsed/<regulation_id>.json
+
+Usage:
+    cd python-rag
+    python -m ingestion.ingest_docs
+    python -m ingestion.ingest_docs --limit 20       # test with first 20 files
+    python -m ingestion.ingest_docs --reparse        # force re-parse already ingested docs
+"""
+from __future__ import annotations
+import argparse
+import json
+import sys
+import os
+from datetime import datetime, timezone
+from pathlib import Path
+
+from loguru import logger
+from tqdm import tqdm
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
+from config import settings
+from db.mongo import documents as docs_col
+from ingestion.parser import parse_pdf
+from ingestion.metadata_extractor import extract_metadata
+
+
+def _find_all_pdfs(root: Path) -> list[Path]:
+    # De-duplicate by normalized absolute path (Windows filesystems are case-insensitive).
+    unique_paths: dict[str, Path] = {}
+    for path in root.rglob("*"):
+        if not path.is_file() or path.suffix.lower() != ".pdf":
+            continue
+        key = str(path.resolve()).lower()
+        unique_paths[key] = path
+    return sorted(unique_paths.values())
+
+
+def _already_ingested(regulation_id: str) -> bool:
+    return docs_col().find_one({"regulation_id": regulation_id}, {"_id": 1}) is not None
+
+
+def _save_parsed_json(regulation_id: str, parsed_data: dict) -> Path:
+    out_dir = settings.data_dir / "parsed"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    # Sanitize regulation_id for use as filename
+    safe_name = regulation_id.replace("/", "-").replace("\\", "-")
+    out_path = out_dir / f"{safe_name}.json"
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(parsed_data, f, ensure_ascii=False, indent=2)
+    return out_path
+
+
+def ingest_all(limit: int | None = None, reparse: bool = False) -> dict:
+    root = settings.rbi_docs_dir
+    if not root.exists():
+        logger.error(f"RBI DOCS directory not found: {root}")
+        sys.exit(1)
+
+    all_pdfs = _find_all_pdfs(root)
+    logger.info(f"Found {len(all_pdfs)} PDF files under {root}")
+
+    if limit:
+        all_pdfs = all_pdfs[:limit]
+        logger.info(f"Limiting to first {limit} files")
+
+    stats = {"total": len(all_pdfs), "ingested": 0, "skipped": 0, "failed": 0, "ocr": 0}
+
+    for pdf_path in tqdm(all_pdfs, desc="Ingesting PDFs", unit="file"):
+        try:
+            meta = extract_metadata(pdf_path, root)
+            regulation_id = meta["regulation_id"]
+
+            if not reparse and _already_ingested(regulation_id):
+                stats["skipped"] += 1
+                continue
+
+            # Parse PDF
+            parsed = parse_pdf(pdf_path)
+
+            if parsed.method == "ocr":
+                stats["ocr"] += 1
+
+            # Save parsed JSON even if text extraction failed, so document record is preserved.
+            parsed_data = {
+                "regulation_id": regulation_id,
+                "pdf_path": str(pdf_path),
+                "page_count": parsed.page_count,
+                "method": parsed.method,
+                "pages": parsed.pages,
+                "full_text": parsed.text,
+                "warnings": parsed.warnings,
+                "parsed_at": datetime.now(timezone.utc).isoformat(),
+            }
+            parsed_json_path = _save_parsed_json(regulation_id, parsed_data)
+
+            # Update metadata with parse results
+            meta.update({
+                "page_count": parsed.page_count,
+                "parse_method": parsed.method,
+                "parsed_text_path": str(parsed_json_path),
+                "ingested_at": datetime.now(timezone.utc).isoformat(),
+                "char_count": len(parsed.text),
+                "extraction_status": "success" if parsed.text else "failed",
+                "extraction_warnings": parsed.warnings,
+            })
+
+            # Upsert into MongoDB
+            docs_col().update_one(
+                {"regulation_id": regulation_id},
+                {"$set": meta},
+                upsert=True,
+            )
+
+            if parsed.warnings:
+                for w in parsed.warnings:
+                    logger.warning(f"[{regulation_id}] {w}")
+
+            if not parsed.text:
+                logger.warning(f"No text extracted from {pdf_path.name} — stored metadata with failed status")
+                stats["failed"] += 1
+                continue
+
+            stats["ingested"] += 1
+
+        except Exception as exc:
+            logger.error(f"Failed to ingest {pdf_path.name}: {exc}")
+            stats["failed"] += 1
+
+    return stats
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Ingest RBI/NPCI PDFs into MongoDB")
+    parser.add_argument("--limit", type=int, default=None, help="Only process first N files")
+    parser.add_argument("--reparse", action="store_true", help="Re-parse already ingested docs")
+    args = parser.parse_args()
+
+    logger.info("=== PDF Ingestion Pipeline ===")
+    stats = ingest_all(limit=args.limit, reparse=args.reparse)
+    logger.success(
+        f"Done — ingested: {stats['ingested']}, skipped: {stats['skipped']}, "
+        f"failed: {stats['failed']}, OCR used: {stats['ocr']}"
+    )
+
+
+if __name__ == "__main__":
+    main()
