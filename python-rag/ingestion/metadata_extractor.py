@@ -209,6 +209,16 @@ def extract_metadata(pdf_path: Path, rbi_docs_root: Path) -> dict:
 
     regulation_id = _build_regulation_id(rel_path)
 
+    rel_lower = str(rel_path).lower()
+    stem_lower = stem.lower()
+    status = "active"
+    if any(k in rel_lower for k in ("superseded", "obsolete", "archived", "old")):
+        status = "superseded"
+    elif any(k in stem_lower for k in ("superseded", "withdrawn", "rescinded", "obsolete")):
+        status = "superseded"
+    elif "partially modified" in rel_lower or "partially-modified" in rel_lower:
+        status = "partially_modified"
+
     return {
         "regulation_id": regulation_id,
         "title": title,
@@ -216,7 +226,7 @@ def extract_metadata(pdf_path: Path, rbi_docs_root: Path) -> dict:
         "relative_path": str(rel_path),
         "regulator": regulator,
         "category": category,
-        "status": "active",
+        "status": status,
         "issue_date": issue_date,
         "fiscal_year": fiscal_year,
         "circular_number": circular_number,
