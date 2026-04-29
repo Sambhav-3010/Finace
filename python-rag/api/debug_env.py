@@ -19,7 +19,7 @@ def main() -> None:
     print(f"ENV_FILE_EXISTS={env_path.exists()}")
     print(f"HAS_GROQ_KEY={bool(settings.groq_api_key)}")
     print(f"GROQ_MODEL={settings.groq_model}")
-    print(f"RAG_ENABLE_LLM={os.getenv('RAG_ENABLE_LLM', '0')}")
+    print(f"RAG_ENABLE_LLM={os.getenv('RAG_ENABLE_LLM', '1')}")
 
 
 if __name__ == "__main__":
