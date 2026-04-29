@@ -61,7 +61,7 @@ class LLMClient:
         return _extract_json_object(text)
 
     def generate_json(self, prompt: str) -> dict:
-        if os.getenv("RAG_ENABLE_LLM", "0") != "1":
+        if os.getenv("RAG_ENABLE_LLM", "1") != "1":
             reason = "RAG_ENABLE_LLM is not set to 1"
             logger.warning(f"{reason}; using fallback response")
             return self._mock_response(reason)
