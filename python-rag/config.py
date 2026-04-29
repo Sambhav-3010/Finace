@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from pydantic_settings import BaseSettings
+from pydantic_settings import SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -8,9 +9,9 @@ class Settings(BaseSettings):
     mongo_uri: str = "mongodb://localhost:27017"
     mongo_db: str = "compliance_engine"
 
-    # Gemini 2.5 Flash
-    gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash"
+    # Groq LLM
+    groq_api_key: str = ""
+    groq_model: str = "llama-3.3-70b-versatile"
 
     embedding_model: str = "BAAI/bge-large-en-v1.5"
     embedding_dim: int = 1024
@@ -28,10 +29,12 @@ class Settings(BaseSettings):
     data_dir: Path = Path(__file__).parent.parent / "data"
     rbi_docs_dir: Path = Path(__file__).parent.parent / "RBI DOCS"
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        extra = "ignore"
+    model_config = SettingsConfigDict(
+        env_file=str(Path(__file__).resolve().parent / ".env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+    )
 
 
 settings = Settings()

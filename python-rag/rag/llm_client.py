@@ -1,6 +1,6 @@
 """
 LLM client wrapper for RAG reasoning.
-Uses Gemini when API key is configured, otherwise falls back to a deterministic mock.
+Groq-only implementation.
 """
 from __future__ import annotations
 
@@ -32,36 +32,46 @@ def _extract_json_object(text: str) -> dict:
 
 class LLMClient:
     def __init__(self):
-        self.api_key = settings.gemini_api_key
-        self.model_name = settings.gemini_model
+        self.groq_api_key = settings.groq_api_key
+        self.groq_model = settings.groq_model
 
-    def _mock_response(self) -> dict:
+    def _mock_response(self, reason: str) -> dict:
         return {
             "risk_level": "MEDIUM",
-            "risk_flags": ["LLM API key not configured; returned fallback analysis"],
+            "risk_flags": [f"LLM fallback used: {reason}"],
             "applicable_clauses": [],
-            "explanation": "Fallback mode used because Gemini API key is missing.",
-            "recommendations": ["Set GEMINI_API_KEY in .env for full LLM reasoning."],
+            "explanation": f"Fallback mode used. Reason: {reason}",
+            "recommendations": [
+                "Set RAG_ENABLE_LLM=1 to enable live LLM calls.",
+                "Set GROQ_API_KEY in python-rag/.env.",
+            ],
             "compliance_score": 55,
         }
 
+    def _generate_groq(self, prompt: str) -> dict:
+        from groq import Groq
+
+        client = Groq(api_key=self.groq_api_key)
+        response = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model=self.groq_model,
+            temperature=0.2,
+        )
+        text = (response.choices[0].message.content or "").strip()
+        return _extract_json_object(text)
+
     def generate_json(self, prompt: str) -> dict:
         if os.getenv("RAG_ENABLE_LLM", "0") != "1":
-            logger.warning("RAG_ENABLE_LLM is not set to 1; using fallback response")
-            return self._mock_response()
-
-        if not self.api_key:
-            logger.warning("GEMINI_API_KEY not set; using fallback response")
-            return self._mock_response()
+            reason = "RAG_ENABLE_LLM is not set to 1"
+            logger.warning(f"{reason}; using fallback response")
+            return self._mock_response(reason)
 
         try:
-            import google.generativeai as genai
-
-            genai.configure(api_key=self.api_key)
-            model = genai.GenerativeModel(self.model_name)
-            response = model.generate_content(prompt)
-            text = (response.text or "").strip()
-            return _extract_json_object(text)
+            if not self.groq_api_key:
+                reason = "GROQ_API_KEY not set"
+                logger.warning(f"{reason}; using fallback response")
+                return self._mock_response(reason)
+            return self._generate_groq(prompt)
         except Exception as exc:
             logger.error(f"LLM generation failed; using fallback response: {exc}")
-            return self._mock_response()
+            return self._mock_response(f"LLM generation failed: {exc}")
