@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { requireApiKey } from "../middlewares/requireApiKey.js";
-import { runGeneralQuery } from "../services/ragService.js";
+import { requireAuth } from "../middlewares/requireEvaluatorAuth.js";
 import { storeComplianceProof, getBlockchainDeployment } from "../services/blockchainService.js";
 import { postJson } from "../services/httpClient.js";
 import { Report } from "../models/Report.js";
@@ -10,36 +10,51 @@ import crypto from "crypto";
 
 const router = Router();
 
+// Middleware to allow either API Key OR JWT Auth (for Company/Frontend)
+const requireEitherAuth = (req, res, next) => {
+  const apiKey = req.header("x-api-key");
+  const authHeader = req.header("Authorization");
+
+  if (apiKey) return requireApiKey(req, res, next);
+  if (authHeader) return requireAuth(req, res, next);
+
+  return res.status(401).json({ ok: false, error: "Authentication required (API Key or JWT)" });
+};
+
 // ────────────────────────────────────────────
-// POST /reports/generate  — New compliance report (call_type: new_report)
+// POST /reports/generate  — New compliance report
 // ────────────────────────────────────────────
 router.post(
   "/generate",
-  requireApiKey,
+  requireEitherAuth,
   asyncHandler(async (req, res) => {
-    const { workflow_text, regulator, user_id } = req.body;
+    const { workflow_text, regulator } = req.body;
+    
+    // Use user_id from JWT if available, else from body, else default
+    const user_id = req.user?.user_id || req.body.user_id || "system";
     
     if (!workflow_text) {
       return res.status(400).json({ ok: false, error: "workflow_text is required" });
     }
 
-    // Call the Python RAG service
-    const result = await runGeneralQuery({ 
-      prompt: workflow_text, 
-      regulator: regulator || "RBI" 
-    });
+    const result = await postJson(
+      `${env.fastApiBaseUrl}/analyze`,
+      {
+        call_type: "new_report",
+        workflow_text,
+        regulator: regulator || "RBI",
+        top_k: 5,
+      },
+      { timeoutMs: env.fastApiTimeoutMs }
+    );
 
     const analysis = result?.analysis || {};
     const report_id = `rep-${crypto.randomBytes(4).toString("hex")}`;
+    const compliance_score = typeof analysis.compliance_score === "number" ? analysis.compliance_score : 55;
 
-    const compliance_score = typeof analysis.compliance_score === "number" 
-      ? analysis.compliance_score 
-      : 55;
-
-    // Persist report in MongoDB
     const report = await Report.create({
       report_id,
-      user_id: user_id || "system",
+      user_id,
       workflow_input: { text: workflow_text, regulator },
       risk_level: analysis.risk_level || "MEDIUM",
       risk_flags: analysis.risk_flags || [],
@@ -55,12 +70,11 @@ router.post(
 );
 
 // ────────────────────────────────────────────
-// POST /reports/update  — Update existing report (call_type: update_report)
-// Compares existing context against latest/superseded regulations.
+// POST /reports/update  — Update existing report
 // ────────────────────────────────────────────
 router.post(
   "/update",
-  requireApiKey,
+  requireEitherAuth,
   asyncHandler(async (req, res) => {
     const { report_id, workflow_text, regulator } = req.body;
 
@@ -73,7 +87,6 @@ router.post(
       return res.status(404).json({ ok: false, error: "Report not found" });
     }
 
-    // Build context from the existing report for the update_report call
     const existingReportText = [
       `Risk Level: ${existing.risk_level}`,
       `Explanation: ${existing.explanation || ""}`,
@@ -83,7 +96,6 @@ router.post(
 
     const queryWorkflow = workflow_text || existing.workflow_input?.text || "";
 
-    // Call RAG with update_report call_type via FastAPI
     const result = await postJson(
       `${env.fastApiBaseUrl}/analyze`,
       {
@@ -98,7 +110,6 @@ router.post(
 
     const analysis = result?.analysis || {};
 
-    // Update the report in MongoDB
     const updated = await Report.findOneAndUpdate(
       { report_id },
       {
@@ -107,10 +118,8 @@ router.post(
         applicable_clauses: analysis.applicable_clauses || existing.applicable_clauses,
         explanation: analysis.explanation || existing.explanation,
         recommendations: analysis.recommendations || existing.recommendations,
-        compliance_score: typeof analysis.compliance_score === "number"
-          ? analysis.compliance_score
-          : existing.compliance_score,
-        status: "pending", // Reset to pending after update
+        compliance_score: typeof analysis.compliance_score === "number" ? analysis.compliance_score : existing.compliance_score,
+        status: "pending",
         $push: {
           "evaluation_metadata.update_history": {
             updated_at: new Date(),
@@ -127,113 +136,61 @@ router.post(
 );
 
 // ────────────────────────────────────────────
-// POST /reports/proof  — Upload to IPFS + store proof on blockchain
-// Triggers the full finalization pipeline: IPFS → Blockchain → MongoDB update
+// POST /reports/proof  — Finalize to Blockchain
 // ────────────────────────────────────────────
 router.post(
   "/proof",
-  requireApiKey,
+  requireEitherAuth,
   asyncHandler(async (req, res) => {
     const { report_id, org_name } = req.body;
 
-    if (!report_id) {
-      return res.status(400).json({ ok: false, error: "report_id is required" });
-    }
-    if (!org_name) {
-      return res.status(400).json({ ok: false, error: "org_name is required" });
-    }
+    if (!report_id) return res.status(400).json({ ok: false, error: "report_id is required" });
+    if (!org_name) return res.status(400).json({ ok: false, error: "org_name is required" });
 
     const report = await Report.findOne({ report_id });
-    if (!report) {
-      return res.status(404).json({ ok: false, error: "Report not found" });
-    }
+    if (!report) return res.status(404).json({ ok: false, error: "Report not found" });
 
-    // Step 1: Generate PDF report via FastAPI
+    // 1. PDF Generation
     let pdfPath = report.pdf_path;
     if (!pdfPath) {
       try {
-        const pdfResult = await postJson(
-          `${env.fastApiBaseUrl}/report`,
-          {
-            report_id,
-            org_name,
-            analysis: {
-              risk_level: report.risk_level,
-              compliance_score: report.compliance_score,
-              explanation: report.explanation,
-              recommendations: report.recommendations,
-              applicable_clauses: report.applicable_clauses,
-              risk_flags: report.risk_flags,
-            },
-          },
-          { timeoutMs: 60000 }
-        );
+        const pdfResult = await postJson(`${env.fastApiBaseUrl}/report`, {
+          report_id, org_name, analysis: report
+        }, { timeoutMs: 60000 });
         pdfPath = pdfResult?.pdf_path || null;
-      } catch (err) {
-        // PDF generation is optional; continue without it
-        pdfPath = null;
-      }
+      } catch (err) { pdfPath = null; }
     }
 
-    // Step 2: Upload to IPFS via FastAPI
+    // 2. IPFS
     let ipfsCid = report.ipfs_cid;
     if (!ipfsCid && pdfPath) {
       try {
-        const ipfsResult = await postJson(
-          `${env.fastApiBaseUrl}/ipfs`,
-          { file_path: pdfPath },
-          { timeoutMs: 120000 }
-        );
+        const ipfsResult = await postJson(`${env.fastApiBaseUrl}/ipfs`, { file_path: pdfPath }, { timeoutMs: 120000 });
         ipfsCid = ipfsResult?.ipfs_cid || null;
-      } catch (err) {
-        return res.status(502).json({
-          ok: false,
-          error: "IPFS upload failed",
-          detail: err.message,
-        });
-      }
+      } catch (err) { return res.status(502).json({ ok: false, error: "IPFS upload failed" }); }
     }
 
-    if (!ipfsCid) {
-      return res.status(422).json({
-        ok: false,
-        error: "Cannot create proof without IPFS CID. Generate a PDF report first.",
-      });
-    }
+    if (!ipfsCid) return res.status(422).json({ ok: false, error: "IPFS CID required for proof" });
 
-    // Step 3: Store proof on blockchain
+    // 3. Blockchain
     const deployment = getBlockchainDeployment();
     const documentHash = `0x${crypto.createHash("sha256").update(JSON.stringify(report.toObject())).digest("hex")}`;
 
     const blockchainResult = await storeComplianceProof({
-      reportId: report_id,
-      ipfsCid,
-      documentHash,
-      orgName: org_name,
+      reportId: report_id, ipfsCid, documentHash, orgName: org_name,
       riskLevel: report.risk_level || "MEDIUM",
       contractAddress: deployment.address,
     });
 
-    // Step 4: Update MongoDB with IPFS CID and tx hash
-    const txHash = blockchainResult.transactionHash || null;
     const updated = await Report.findOneAndUpdate(
       { report_id },
-      {
-        ipfs_cid: ipfsCid,
-        tx_hash: txHash,
-        pdf_path: pdfPath,
-      },
+      { ipfs_cid: ipfsCid, tx_hash: blockchainResult.transactionHash, pdf_path: pdfPath },
       { new: true }
     );
 
     res.status(201).json({
-      ok: true,
-      report_id,
-      ipfs_cid: ipfsCid,
-      tx_hash: txHash,
-      block_number: blockchainResult.blockNumber,
-      network: blockchainResult.network,
-      report: updated,
+      ok: true, report_id, ipfs_cid: ipfsCid, tx_hash: blockchainResult.transactionHash,
+      network: blockchainResult.network, report: updated
     });
   })
 );

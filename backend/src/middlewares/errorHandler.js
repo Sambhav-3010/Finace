@@ -13,8 +13,13 @@ export function errorHandler(err, req, res, _next) {
   const code = err.code || "internal_error";
   const message = err.message || "Unexpected server error";
 
-  if (statusCode >= 400) {
-    console.error(`[${req.requestId}] ${req.method} ${req.url} - Error:`, err);
+  // Graceful logging:
+  // Only log full stack traces for 500 errors.
+  // For 4xx errors, just log a clean one-liner.
+  if (statusCode >= 500) {
+    console.error(`[${req.requestId}] CRITICAL ERROR: ${req.method} ${req.url} -`, err);
+  } else if (statusCode >= 400) {
+    console.warn(`[${req.requestId}] Client Error (${statusCode}): ${req.method} ${req.url} - ${message}`);
   }
 
   res.status(statusCode).json({
@@ -22,6 +27,6 @@ export function errorHandler(err, req, res, _next) {
     message,
     requestId: req.requestId,
     details: err.details ?? undefined,
-    stack: env.nodeEnv === "production" ? undefined : err.stack,
+    stack: env.nodeEnv === "production" || statusCode < 500 ? undefined : err.stack,
   });
 }

@@ -5,12 +5,14 @@ interface User {
   id: string;
   name: string;
   role: "admin" | "evaluator" | "user";
+  company_name?: string;
+  email?: string;
 }
 
 interface AppState {
   user: User | null;
   isAuthenticated: boolean;
-  login: (user: User) => void;
+  login: (user: User, token?: string) => void;
   logout: () => void;
   
   // Active workflow state
@@ -25,16 +27,43 @@ interface AppState {
   fetchReports: () => Promise<void>;
 }
 
+// Helper to safely get from localStorage
+const getInitialState = () => {
+  if (typeof window === "undefined") return { user: null, isAuthenticated: false };
+  
+  const token = localStorage.getItem("token");
+  const storedUser = localStorage.getItem("user");
+  
+  if (token && storedUser) {
+    try {
+      return { user: JSON.parse(storedUser), isAuthenticated: true };
+    } catch {
+      return { user: null, isAuthenticated: false };
+    }
+  }
+  return { user: null, isAuthenticated: false };
+};
+
+const initialState = getInitialState();
+
 export const useAppStore = create<AppState>((set) => ({
-  user: null,
-  isAuthenticated: false,
-  login: (user) => {
-    if (typeof window !== "undefined") localStorage.setItem("token", "mock_jwt_token");
+  user: initialState.user,
+  isAuthenticated: initialState.isAuthenticated,
+  
+  login: (user, token) => {
+    if (typeof window !== "undefined") {
+      if (token) localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+    }
     set({ user, isAuthenticated: true });
   },
+  
   logout: () => {
-    if (typeof window !== "undefined") localStorage.removeItem("token");
-    set({ user: null, isAuthenticated: false });
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    }
+    set({ user: null, isAuthenticated: false, reports: [], auditLogs: [] });
   },
   
   activeReportId: null,

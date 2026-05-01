@@ -12,7 +12,6 @@ const api = axios.create({
 // Request Interceptor
 api.interceptors.request.use(
   (config) => {
-    // In a real app, attach JWT token from localStorage or cookies here
     const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -26,7 +25,6 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    // Handle global errors here (e.g. 401 unauthorized, 500 server error)
     if (error.response?.status === 401) {
       if (typeof window !== "undefined") {
         localStorage.removeItem("token");
@@ -39,8 +37,22 @@ api.interceptors.response.use(
 
 // --- API Methods ---
 
+export const userAuthApi = {
+  register: (company_name: string, username: string, password: string) =>
+    api.post("/auth/register", { company_name, username, password }),
+  login: (username: string, password: string) =>
+    api.post("/auth/login", { username, password }),
+};
+
+export const evaluatorAuthApi = {
+  register: (name: string, email: string, password: string) =>
+    api.post("/evaluator/auth/register", { name, email, password }),
+  login: (email: string, password: string) =>
+    api.post("/evaluator/auth/login", { email, password }),
+};
+
 export const workflowApi = {
-  analyze: (workflow_text: string, regulator: string, user_id: string = "usr_123") =>
+  analyze: (workflow_text: string, regulator?: string, user_id: string = "usr_123") =>
     api.post("/reports/generate", { workflow_text, regulator, user_id }),
 };
 

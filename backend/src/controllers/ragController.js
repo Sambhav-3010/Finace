@@ -1,37 +1,45 @@
 import { runGeneralQuery, runRegulationSearch } from "../services/ragService.js";
 
-function toCompactResponse(result) {
+/**
+ * Maps the complex RAG result into a clean format for the frontend chat.
+ * Ensures the 'sources' field is present and contains full document references.
+ */
+function toChatResponse(result) {
   const analysis = result?.analysis ?? {};
-  const clauses = Array.isArray(analysis.applicable_clauses) ? analysis.applicable_clauses : [];
-  const citations = clauses.slice(0, 5).map((clause) => ({
-    title: clause.title || "",
-    source: clause.source || "",
-    text: (clause.text || "").slice(0, 420),
+  
+  // Combine LLM-identified clauses and raw retrieval hits for maximum transparency
+  const rawHits = Array.isArray(result.retrieval_hits) ? result.retrieval_hits : [];
+  const identifiedClauses = Array.isArray(analysis.applicable_clauses) ? analysis.applicable_clauses : [];
+  
+  const sources = rawHits.map(hit => ({
+    document_id: hit.document_id || hit.source || "Regulation",
+    section: hit.section || hit.title || "General",
+    text: hit.text || hit.content || ""
   }));
 
-  const answer =
-    analysis.explanation ||
-    (Array.isArray(analysis.recommendations) ? analysis.recommendations.join(" ") : "");
+  // Ensure explanation is detailed
+  const answer = analysis.explanation || "No detailed explanation provided by AI.";
 
   return {
+    ok: true,
     answer,
-    confidence:
-      typeof analysis.compliance_score === "number"
-        ? analysis.compliance_score / 100
-        : 0.55,
-    callType: analysis.call_type || "general_query",
+    sources, // Frontend expects 'sources'
     riskLevel: analysis.risk_level || "LOW",
     riskFlags: analysis.risk_flags || [],
     recommendations: analysis.recommendations || [],
+    complianceScore: analysis.compliance_score || 0,
     reasoningSteps: analysis.reasoning_steps || [],
-    citations,
-    raw: result,
+    raw: analysis
   };
 }
 
 export async function askGeneralQuery(req, res) {
-  const result = await runGeneralQuery(req.validated);
-  res.json(toCompactResponse(result));
+  try {
+    const result = await runGeneralQuery(req.validated);
+    res.json(toChatResponse(result));
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
 }
 
 export async function searchRegulations(req, res) {
@@ -41,13 +49,17 @@ export async function searchRegulations(req, res) {
     return res.json({ ok: true, data: [] });
   }
 
-  const result = await runRegulationSearch({
-    query: q,
-    regulator,
-    topK: topK ? parseInt(topK, 10) : 10,
-  });
-  res.json({
-    ok: true,
-    data: result.results || [],
-  });
+  try {
+    const result = await runRegulationSearch({
+      query: q,
+      regulator,
+      topK: topK ? parseInt(topK, 10) : 10,
+    });
+    res.json({
+      ok: true,
+      data: result.results || [],
+    });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
 }

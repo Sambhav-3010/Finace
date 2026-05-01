@@ -3,106 +3,182 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/store/appStore";
-import { motion } from "framer-motion";
-import { ShieldCheck, Lock, User as UserIcon } from "lucide-react";
+import { evaluatorAuthApi, userAuthApi } from "@/services/api";
+import { motion, AnimatePresence } from "framer-motion";
+import { ShieldCheck, Lock, User as UserIcon, Mail, BadgeCheck, Building2, LayoutPanelLeft } from "lucide-react";
+
+type LoginRole = "company" | "evaluator";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(""); // Used as username for company
   const [password, setPassword] = useState("");
+  const [name, setName] = useState(""); // Used as Full Name or Company Name
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [role, setRole] = useState<LoginRole>("company");
+  const [isRegistering, setIsRegistering] = useState(false);
   const router = useRouter();
   const login = useAppStore((state) => state.login);
+
+  const handleCompanyLogin = async () => {
+    try {
+      const data: any = await userAuthApi.login(email, password);
+      if (data.ok && data.token) {
+        login(data.user, data.token);
+        router.push("/dashboard");
+      } else {
+        throw new Error(data.error || "Login failed");
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.error || err.message || "Login failed");
+    }
+  };
+
+  const handleCompanyRegister = async () => {
+    try {
+      // name = Company Name, email = Username
+      const data: any = await userAuthApi.register(name, email, password);
+      if (data.ok && data.token) {
+        login(data.user, data.token);
+        router.push("/dashboard");
+      } else {
+        throw new Error(data.error || "Registration failed");
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.error || err.message || "Registration failed");
+    }
+  };
+
+  const handleEvaluatorLogin = async () => {
+    try {
+      const data: any = await evaluatorAuthApi.login(email, password);
+      if (data.ok && data.token) {
+        login(
+          {
+            id: data.evaluator.evaluator_id,
+            name: data.evaluator.name,
+            role: "evaluator",
+            email: data.evaluator.email,
+          },
+          data.token
+        );
+        router.push("/dashboard/evaluator");
+      } else {
+        throw new Error(data.error || "Login failed");
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.error || err.message || "Login failed");
+    }
+  };
+
+  const handleEvaluatorRegister = async () => {
+    try {
+      const data: any = await evaluatorAuthApi.register(name, email, password);
+      if (data.ok && data.token) {
+        login(
+          {
+            id: data.evaluator.evaluator_id,
+            name: data.evaluator.name,
+            role: "evaluator",
+            email: data.evaluator.email,
+          },
+          data.token
+        );
+        router.push("/dashboard/evaluator");
+      } else {
+        throw new Error(data.error || "Registration failed");
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.error || err.message || "Registration failed");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
-    // Mock API call for login
-    setTimeout(() => {
-      login({
-        id: "usr_123",
-        name: email.split("@")[0] || "Admin",
-        role: "admin",
-      });
-      router.push("/dashboard");
-    }, 800);
+    try {
+      if (role === "company") {
+        if (isRegistering) await handleCompanyRegister();
+        else await handleCompanyLogin();
+      } else {
+        if (isRegistering) await handleEvaluatorRegister();
+        else await handleEvaluatorLogin();
+      }
+    } catch {
+      // Errors handled in specific methods
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#071010] flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background elements */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent/20 rounded-full blur-[120px] opacity-50" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] opacity-50" />
 
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md">
         <div className="glass rounded-[2rem] p-8 border border-white/10 relative z-10">
           <div className="flex flex-col items-center mb-8">
             <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-4">
               <ShieldCheck className="w-8 h-8 text-accent" />
             </div>
             <h1 className="text-2xl font-bold text-white tracking-tight">Finace Platform</h1>
-            <p className="text-white/50 text-sm mt-2 text-center">
-              Autonomous Compliance Engine for Fintech
-            </p>
+            <p className="text-white/50 text-sm mt-2">Autonomous Compliance Engine</p>
+          </div>
+
+          <div className="flex rounded-2xl border border-white/10 overflow-hidden mb-6">
+            <button type="button" onClick={() => { setRole("company"); setIsRegistering(false); setError(null); }}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-all ${role === "company" ? "bg-accent/15 text-accent border-r border-white/10" : "text-white/40 hover:text-white/60 border-r border-white/10"}`}>
+              <Building2 className="w-4 h-4" /> Company
+            </button>
+            <button type="button" onClick={() => { setRole("evaluator"); setIsRegistering(false); setError(null); }}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-all ${role === "evaluator" ? "bg-accent/15 text-accent" : "text-white/40 hover:text-white/60"}`}>
+              <BadgeCheck className="w-4 h-4" /> Evaluator
+            </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            <AnimatePresence mode="wait">
+              {isRegistering && (
+                <motion.div key="name-field" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="space-y-1.5">
+                  <label className="text-xs font-medium text-white/60 uppercase tracking-wider pl-1">{role === "company" ? "Company Name" : "Full Name"}</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><UserIcon className="h-5 w-5 text-white/30" /></div>
+                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="w-full bg-white/[0.03] border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all" placeholder={role === "company" ? "Acme Corp" : "John Doe"} />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-white/60 uppercase tracking-wider pl-1">Email</label>
+              <label className="text-xs font-medium text-white/60 uppercase tracking-wider pl-1">{role === "company" ? "Username" : "Email"}</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                  <UserIcon className="h-5 w-5 text-white/30" />
-                </div>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-transparent transition-all"
-                  placeholder="admin@finace.io"
-                />
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><Mail className="h-5 w-5 text-white/30" /></div>
+                <input type="text" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all" placeholder={role === "company" ? "admin_acme" : "evaluator@finace.io"} />
               </div>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-white/60 uppercase tracking-wider pl-1">Password</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-white/30" />
-                </div>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-transparent transition-all"
-                  placeholder="••••••••"
-                />
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><Lock className="h-5 w-5 text-white/30" /></div>
+                <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white/[0.03] border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all" placeholder="••••••••" />
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full mt-6 bg-accent hover:bg-accent/90 text-ink font-semibold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(var(--accent-rgb),0.3)] hover:shadow-[0_0_25px_rgba(var(--accent-rgb),0.5)]"
-            >
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-ink/30 border-t-ink rounded-full animate-spin" />
-              ) : (
-                "Sign In"
-              )}
+            {error && <p className="text-sm text-rose-400 bg-rose-400/10 px-4 py-2 rounded-xl border border-rose-500/20">{error}</p>}
+
+            <button type="submit" disabled={loading} className="w-full mt-6 bg-accent hover:bg-accent/90 text-ink font-semibold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-70">
+              {loading ? <div className="w-5 h-5 border-2 border-ink/30 border-t-ink rounded-full animate-spin" /> : isRegistering ? "Create Account" : "Sign In"}
             </button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-white/5 flex flex-col gap-2 text-center">
-            <p className="text-xs text-white/40">
-              By signing in, you agree to our Terms of Service & Privacy Policy.
-            </p>
+          <div className="mt-6 text-center">
+            <button type="button" onClick={() => { setIsRegistering(!isRegistering); setError(null); }} className="text-sm text-accent/70 hover:text-accent transition">
+              {isRegistering ? "Already have an account? Sign in" : `New ${role === "company" ? "company" : "evaluator"}? Create account`}
+            </button>
           </div>
         </div>
       </motion.div>

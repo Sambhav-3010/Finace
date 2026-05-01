@@ -56,5 +56,8 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-print(f"DEBUG: GROQ_API_KEY loaded: {bool(settings.groq_api_key)}")
-print(f"DEBUG: XAI_API_KEY loaded: {bool(settings.xai_api_key)}")
+import sys
+
+# ... inside the function or file ...
+print(f"DEBUG: GROQ_API_KEY loaded: {bool(settings.groq_api_key)}", file=sys.stderr)
+print(f"DEBUG: XAI_API_KEY loaded: {bool(settings.xai_api_key)}", file=sys.stderr)

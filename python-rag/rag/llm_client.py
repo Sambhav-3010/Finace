@@ -15,19 +15,31 @@ from config import settings
 
 
 def _extract_json_object(text: str) -> dict:
-    # Try direct JSON first
+    """Extracts and parses the first JSON object found in a string, 
+    handling markdown blocks and extra conversational text."""
+    
+    # 1. Strip markdown code blocks if they exist
+    cleaned = text.strip()
+    if cleaned.startswith("```"):
+        # Remove ```json or just ```
+        cleaned = re.sub(r"^```(?:json)?\n?", "", cleaned)
+        # Remove trailing ```
+        cleaned = re.sub(r"\n?```$", "", cleaned)
+    
+    # 2. Try direct parsing of the cleaned text
     try:
-        return json.loads(text)
+        return json.loads(cleaned.strip())
     except Exception:
         pass
 
-    # Try fenced or embedded JSON
-    match = re.search(r"\{.*\}", text, flags=re.DOTALL)
+    # 3. Last resort: regex to find the actual { ... } block
+    match = re.search(r"(\{.*\})", cleaned, flags=re.DOTALL)
     if match:
         try:
-            return json.loads(match.group(0))
+            return json.loads(match.group(1))
         except Exception:
             pass
+            
     raise ValueError("Could not parse JSON from model response")
 
 
@@ -75,6 +87,7 @@ class LLMClient:
             json={
                 "model": self.xai_model,
                 "temperature": 0.2,
+                "response_format": { "type": "json_object" },
                 "messages": [
                     {
                         "role": "system",
