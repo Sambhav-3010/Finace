@@ -10,6 +10,7 @@ Usage:
 """
 from __future__ import annotations
 import argparse
+import hashlib
 import json
 import sys
 import os
@@ -47,6 +48,9 @@ def _save_parsed_json(regulation_id: str, parsed_data: dict) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     # Sanitize regulation_id for use as filename
     safe_name = regulation_id.replace("/", "-").replace("\\", "-")
+    digest = hashlib.sha1(regulation_id.encode("utf-8")).hexdigest()[:12]
+    safe_prefix = safe_name[:48].rstrip("-_")
+    safe_name = f"{safe_prefix}-{digest}" if safe_prefix else digest
     out_path = out_dir / f"{safe_name}.json"
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(parsed_data, f, ensure_ascii=False, indent=2)

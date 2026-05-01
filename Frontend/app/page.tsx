@@ -1,21 +1,23 @@
-import { Hero } from "@/components/marketing/hero";
-import { Navbar } from "@/components/marketing/navbar";
 import {
+  Hero,
+  Navbar,
   CapabilitiesSection,
-  ProblemSection,
-  UseCaseSection,
   WorkflowSection,
-} from "@/components/marketing/sections";
+  ArchitectureSection,
+  CTASection,
+  Footer,
+} from "@/components/marketing/landing";
 
 export default function HomePage() {
   return (
     <main>
       <Navbar />
       <Hero />
-      <ProblemSection />
       <CapabilitiesSection />
       <WorkflowSection />
-      <UseCaseSection />
+      <ArchitectureSection />
+      <CTASection />
+      <Footer />
     </main>
   );
 }

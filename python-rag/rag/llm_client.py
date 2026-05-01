@@ -1,6 +1,6 @@
 """
 LLM client wrapper for RAG reasoning.
-Groq-only implementation.
+Grok/xAI implementation.
 """
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import json
 import os
 import re
 
+import httpx
 from loguru import logger
 
 from config import settings
@@ -32,8 +33,24 @@ def _extract_json_object(text: str) -> dict:
 
 class LLMClient:
     def __init__(self):
-        self.groq_api_key = settings.groq_api_key
-        self.groq_model = settings.groq_model
+        self.xai_api_key = (
+            settings.groq_api_key
+            or settings.xai_api_key
+            or os.getenv("GROK_API_KEY", "")
+            or os.getenv("GROQ_API_KEY", "")
+        )
+        self.xai_model = (
+            settings.groq_model
+            if settings.llm_provider == "groq"
+            else settings.xai_model
+        )
+        self.xai_base_url = "https://api.x.ai/v1"
+        if self.xai_api_key.startswith("gsk_") or settings.llm_provider == "groq":
+            self.xai_base_url = "https://api.groq.com/openai/v1"
+        
+        # Override if explicitly set in settings
+        if settings.xai_base_url and "x.ai" not in settings.xai_base_url:
+            self.xai_base_url = settings.xai_base_url.rstrip("/")
 
     def _mock_response(self, reason: str) -> dict:
         return {
@@ -43,21 +60,34 @@ class LLMClient:
             "explanation": f"Fallback mode used. Reason: {reason}",
             "recommendations": [
                 "Set RAG_ENABLE_LLM=1 to enable live LLM calls.",
-                "Set GROQ_API_KEY in python-rag/.env.",
+                "Set XAI_API_KEY in python-rag/.env.",
             ],
             "compliance_score": 55,
         }
 
-    def _generate_groq(self, prompt: str) -> dict:
-        from groq import Groq
-
-        client = Groq(api_key=self.groq_api_key)
-        response = client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
-            model=self.groq_model,
-            temperature=0.2,
+    def _generate_xai(self, prompt: str) -> dict:
+        response = httpx.post(
+            f"{self.xai_base_url}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {self.xai_api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": self.xai_model,
+                "temperature": 0.2,
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "Return valid JSON only. Do not wrap the response in markdown.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+            },
+            timeout=60.0,
         )
-        text = (response.choices[0].message.content or "").strip()
+        response.raise_for_status()
+        data = response.json()
+        text = (data["choices"][0]["message"]["content"] or "").strip()
         return _extract_json_object(text)
 
     def generate_json(self, prompt: str) -> dict:
@@ -67,11 +97,11 @@ class LLMClient:
             return self._mock_response(reason)
 
         try:
-            if not self.groq_api_key:
-                reason = "GROQ_API_KEY not set"
+            if not self.xai_api_key:
+                reason = "XAI_API_KEY not set"
                 logger.warning(f"{reason}; using fallback response")
                 return self._mock_response(reason)
-            return self._generate_groq(prompt)
+            return self._generate_xai(prompt)
         except Exception as exc:
             logger.error(f"LLM generation failed; using fallback response: {exc}")
             return self._mock_response(f"LLM generation failed: {exc}")
