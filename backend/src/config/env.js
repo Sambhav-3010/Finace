@@ -47,4 +47,5 @@ export const env = {
   blockchainWriteEnabled: readBool("BLOCKCHAIN_WRITE_ENABLED", true),
   mongoUri: readString("MONGO_URI", "mongodb://localhost:27017"),
   mongoDb: readString("MONGO_DB", "compliance_engine"),
+  jwtSecret: readString("JWT_SECRET", "finace_dev_jwt_secret_change_me"),
 };

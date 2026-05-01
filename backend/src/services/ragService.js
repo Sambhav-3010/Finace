@@ -82,7 +82,14 @@ async function runCliQuery({ prompt, topK = 5, regulator = null, category = null
       }
 
       try {
-        resolve(JSON.parse(stdout.trim()));
+        // Find the first '{' and last '}' to extract only the JSON part
+        const start = stdout.indexOf("{");
+        const end = stdout.lastIndexOf("}");
+        if (start === -1 || end === -1) {
+          throw new Error("No JSON object found in output");
+        }
+        const jsonStr = stdout.substring(start, end + 1);
+        resolve(JSON.parse(jsonStr));
       } catch (error) {
         reject(
           new HttpError(

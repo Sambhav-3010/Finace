@@ -1,20 +1,32 @@
 import { evaluateResponse } from "../services/evaluatorService.js";
 import { Report } from "../models/Report.js";
 
-// Automated pre-evaluation of a RAG payload
+// Automated pre-evaluation
 export async function evaluateComplianceResponse(req, res) {
   const evaluation = evaluateResponse(req.validated);
-  res.json({
-    ok: true,
-    evaluation,
-  });
+  res.json({ ok: true, evaluation });
 }
 
-// Fetch all reports, optionally filtered by status
+/**
+ * getReports - Role-based visibility
+ * Companies (user) see ONLY their own reports.
+ * Evaluators see ALL reports from all companies.
+ */
 export async function getReports(req, res) {
   try {
     const { status } = req.query;
-    const filter = status ? { status } : {};
+    let filter = {};
+
+    // Apply status filter if provided
+    if (status) filter.status = status;
+
+    // Apply ownership filter
+    // req.user is set by the requireAuth middleware
+    if (req.user.role === "user") {
+      filter.user_id = req.user.user_id;
+    } 
+    // If role is 'evaluator', we don't add the user_id filter (they see everything)
+
     const reports = await Report.find(filter).sort({ created_at: -1 });
     res.json({ ok: true, reports });
   } catch (error) {
@@ -22,32 +34,43 @@ export async function getReports(req, res) {
   }
 }
 
-// Fetch a single report by report_id
 export async function getReportById(req, res) {
   try {
-    const report = await Report.findOne({ report_id: req.params.id });
-    if (!report) return res.status(404).json({ ok: false, error: "Report not found" });
+    const filter = { report_id: req.params.id };
+    
+    // Safety: Companies can only fetch their own report
+    if (req.user.role === "user") {
+      filter.user_id = req.user.user_id;
+    }
+
+    const report = await Report.findOne(filter);
+    if (!report) return res.status(404).json({ ok: false, error: "Report not found or access denied" });
     res.json({ ok: true, report });
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message });
   }
 }
 
-// Human evaluator submits a review
 export async function submitReview(req, res) {
   try {
-    const { status, remarks, evaluator_id } = req.body;
-    
+    const { status, evaluator_remarks, remarks } = req.body;
+    const finalRemarks = evaluator_remarks || remarks || "";
+    const evaluator_id = req.user?.evaluator_id || req.user?.user_id || "unknown";
+
     if (!["verified", "rejected"].includes(status)) {
-      return res.status(400).json({ ok: false, error: "Invalid status. Must be 'verified' or 'rejected'." });
+      return res.status(400).json({ ok: false, error: "Invalid status" });
     }
 
     const report = await Report.findOneAndUpdate(
       { report_id: req.params.id },
       {
         status,
-        evaluator_remarks: remarks,
-        $set: { "evaluation_metadata.evaluator_id": evaluator_id, "evaluation_metadata.evaluated_at": new Date() },
+        evaluator_remarks: finalRemarks,
+        $set: {
+          "evaluation_metadata.evaluator_id": evaluator_id,
+          "evaluation_metadata.evaluator_name": req.user?.name || "Legal Expert",
+          "evaluation_metadata.evaluated_at": new Date(),
+        },
       },
       { new: true }
     );
