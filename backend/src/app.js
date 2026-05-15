@@ -1,10 +1,15 @@
 import cors from "cors";
 import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
 
 import { env } from "./config/env.js";
 import { errorHandler, notFoundHandler } from "./middlewares/errorHandler.js";
 import { attachRequestContext } from "./middlewares/requestContext.js";
 import apiRouter from "./routes/index.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -17,6 +22,9 @@ app.use(
   })
 );
 app.use(express.json({ limit: env.jsonBodyLimit }));
+
+// Serve RBI DOCS as static files at /docs
+app.use("/docs", express.static(path.join(__dirname, "..", "public", "docs")));
 
 app.get("/health", (_req, res) => {
   res.json({

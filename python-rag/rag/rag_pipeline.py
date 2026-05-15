@@ -83,11 +83,19 @@ class RAGPipeline:
         # Add retrieved clauses
         clauses: list[ApplicableClause] = []
         for hit in hits:
+            # Use relative_path from metadata so the frontend can link to the PDF
+            meta = hit.get("metadata", {})
+            source_path = (
+                meta.get("relative_path")
+                or meta.get("source")
+                or hit.get("document_id")
+                or ""
+            )
             clauses.append(
                 ApplicableClause(
                     title=hit.get("section") or "Clause",
                     text=(hit.get("text") or "")[:1200],
-                    source=hit.get("document_id") or "",
+                    source=source_path,
                 )
             )
 
