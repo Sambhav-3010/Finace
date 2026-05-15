@@ -7,10 +7,12 @@ import evaluatorRoutes from "./evaluatorRoutes.js";
 import healthRoutes from "./healthRoutes.js";
 import ragRoutes from "./ragRoutes.js";
 import reportRoutes from "./reportRoutes.js";
+import docsRoutes from "./docsRoutes.js";
 
 const router = Router();
 
 router.use("/health", healthRoutes);
+router.use("/docs", docsRoutes);
 router.use("/rag", ragRoutes);
 router.use("/blockchain", blockchainRoutes);
 router.use("/auth", userAuthRoutes);

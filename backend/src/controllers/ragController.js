@@ -1,29 +1,61 @@
+import mongoose from "mongoose";
 import { runGeneralQuery, runRegulationSearch } from "../services/ragService.js";
 
 /**
  * Maps the complex RAG result into a clean format for the frontend chat.
- * Ensures the 'sources' field is present and contains full document references.
+ * Deduplicates sources and enriches them with actual file paths from MongoDB.
  */
-function toChatResponse(result) {
+async function toChatResponse(result) {
   const analysis = result?.analysis ?? {};
   
-  // Combine LLM-identified clauses and raw retrieval hits for maximum transparency
   const rawHits = Array.isArray(result.retrieval_hits) ? result.retrieval_hits : [];
-  const identifiedClauses = Array.isArray(analysis.applicable_clauses) ? analysis.applicable_clauses : [];
-  
-  const sources = rawHits.map(hit => ({
-    document_id: hit.document_id || hit.source || "Regulation",
-    section: hit.section || hit.title || "General",
-    text: hit.text || hit.content || ""
-  }));
 
-  // Ensure explanation is detailed
+  // Deduplicate by document_id — keep only unique documents
+  const seen = new Set();
+  const uniqueHits = rawHits.filter(hit => {
+    const id = hit.document_id || "";
+    if (!id || seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+
+  // Look up actual file paths from the documents collection in MongoDB
+  const docIds = uniqueHits.map(h => h.document_id).filter(Boolean);
+  let docLookup = {};
+  if (docIds.length > 0) {
+    try {
+      const db = mongoose.connection.db;
+      const docs = await db.collection("documents")
+        .find({ regulation_id: { $in: docIds } }, { projection: { regulation_id: 1, relative_path: 1, source: 1 } })
+        .toArray();
+      for (const d of docs) {
+        docLookup[d.regulation_id] = {
+          relative_path: d.relative_path || "",
+          source_file: d.source || "",
+        };
+      }
+    } catch (err) {
+      console.error("Document lookup failed:", err.message);
+    }
+  }
+
+  const sources = uniqueHits.map(hit => {
+    const lookup = docLookup[hit.document_id] || {};
+    return {
+      document_id: hit.document_id || "Regulation",
+      section: hit.section || hit.title || "General",
+      text: hit.text || hit.content || "",
+      relative_path: lookup.relative_path || hit.metadata?.relative_path || "",
+      source_file: lookup.source_file || hit.metadata?.source || "",
+    };
+  });
+
   const answer = analysis.explanation || "No detailed explanation provided by AI.";
 
   return {
     ok: true,
     answer,
-    sources, // Frontend expects 'sources'
+    sources,
     riskLevel: analysis.risk_level || "LOW",
     riskFlags: analysis.risk_flags || [],
     recommendations: analysis.recommendations || [],
@@ -36,7 +68,8 @@ function toChatResponse(result) {
 export async function askGeneralQuery(req, res) {
   try {
     const result = await runGeneralQuery(req.validated);
-    res.json(toChatResponse(result));
+    const response = await toChatResponse(result);
+    res.json(response);
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message });
   }
