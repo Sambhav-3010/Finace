@@ -4,18 +4,19 @@ import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { reportsApi } from "@/services/api";
-import { 
+import {
   ShieldAlert, CheckCircle2, FileText, RefreshCw, Fingerprint, ExternalLink,
   Info, ChevronLeft, Loader2, Lock, Clock, XCircle
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { useAppStore } from "@/store/appStore";
 
 function StatusTimeline({ report }: { report: any }) {
   const steps = [
     { label: "Created", done: true, icon: FileText, time: report.created_at },
     { label: "Under Review", done: report.status !== "pending", icon: Clock, time: null },
-    { 
-      label: report.status === "rejected" ? "Rejected" : "Verified", 
+    {
+      label: report.status === "rejected" ? "Rejected" : "Verified",
       done: report.status === "verified" || report.status === "rejected",
       icon: report.status === "rejected" ? XCircle : CheckCircle2,
       time: report.evaluation_metadata?.evaluated_at,
@@ -25,29 +26,38 @@ function StatusTimeline({ report }: { report: any }) {
   ];
 
   return (
-    <div className="glass rounded-[2rem] p-6 border-white/10">
-      <h3 className="text-xs font-bold uppercase tracking-wider text-white/40 mb-6">Report Lifecycle</h3>
-      <div className="space-y-0">
-        {steps.map((step, i) => {
-          const Icon = step.icon;
-          const isActive = step.done;
-          const clr = (step as any).color || "accent";
-          return (
-            <div key={step.label} className="flex gap-3">
-              <div className="flex flex-col items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center border ${isActive ? `bg-${clr === "rose" ? "rose" : clr === "emerald" ? "emerald" : "accent"}-500/20 border-${clr === "rose" ? "rose" : clr === "emerald" ? "emerald" : "accent"}-500/30` : "bg-white/5 border-white/10"}`}>
-                  <Icon className={`w-3.5 h-3.5 ${isActive ? (clr === "rose" ? "text-rose-400" : clr === "emerald" ? "text-emerald-400" : "text-accent") : "text-white/30"}`} />
-                </div>
-                {i < steps.length - 1 && <div className={`w-px h-6 ${isActive ? "bg-white/20" : "bg-white/5"}`} />}
+    <div className="flex items-start gap-0">
+      {steps.map((step, i) => {
+        const Icon = step.icon;
+        const isActive = step.done;
+        const clr = (step as any).color || "accent";
+        return (
+          <div key={step.label} className="flex flex-col items-center flex-1">
+            {/* Node + horizontal connector */}
+            <div className="flex items-center w-full">
+              {/* Left connector */}
+              {i > 0 && (
+                <div className={`flex-1 h-px ${isActive ? "bg-white/20" : "bg-white/5"}`} />
+              )}
+              {/* Circle */}
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center border shrink-0 ${isActive
+                ? `bg-${clr === "rose" ? "rose" : clr === "emerald" ? "emerald" : "accent"}-500/20 border-${clr === "rose" ? "rose" : clr === "emerald" ? "emerald" : "accent"}-500/30`
+                : "bg-white/5 border-white/10"}`}>
+                <Icon className={`w-3.5 h-3.5 ${isActive ? (clr === "rose" ? "text-rose-400" : clr === "emerald" ? "text-emerald-400" : "text-accent") : "text-white/30"}`} />
               </div>
-              <div className="pb-4">
-                <p className={`text-sm font-medium ${isActive ? "text-white" : "text-white/30"}`}>{step.label}</p>
-                {step.time && <p className="text-[10px] text-white/30 mt-0.5">{new Date(step.time).toLocaleString()}</p>}
-              </div>
+              {/* Right connector */}
+              {i < steps.length - 1 && (
+                <div className={`flex-1 h-px ${isActive ? "bg-white/20" : "bg-white/5"}`} />
+              )}
             </div>
-          );
-        })}
-      </div>
+            {/* Label + time */}
+            <div className="mt-2 text-center px-1">
+              <p className={`text-xs font-medium ${isActive ? "text-white" : "text-white/30"}`}>{step.label}</p>
+              {step.time && <p className="text-[10px] text-white/30 mt-0.5">{new Date(step.time).toLocaleString()}</p>}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -55,6 +65,7 @@ function StatusTimeline({ report }: { report: any }) {
 export default function ReportReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { id } = use(params);
+  const { user } = useAppStore();
   const [report, setReport] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [remarks, setRemarks] = useState("");
@@ -125,10 +136,14 @@ export default function ReportReviewPage({ params }: { params: Promise<{ id: str
   const isFinalized = report.ipfs_cid && report.tx_hash;
 
   return (
-    <div className="space-y-6 max-w-6xl pb-20">
+    <div className="space-y-6 max-w-7xl pb-20">
+
+      {/* ── Header ─────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Link href="/dashboard/evaluator" className="p-2 rounded-full hover:bg-white/5 text-white/60 transition"><ChevronLeft className="w-5 h-5" /></Link>
+          <Link href="/dashboard/evaluator" className="p-2 rounded-full hover:bg-white/5 text-white/60 transition">
+            <ChevronLeft className="w-5 h-5" />
+          </Link>
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-white/40">Compliance Review</p>
             <h2 className="text-2xl font-semibold text-white flex items-center gap-3">
@@ -148,128 +163,275 @@ export default function ReportReviewPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass rounded-[2rem] p-8 border-white/10">
-            <div className="flex items-center gap-2 mb-6">
-              <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20"><Info className="w-5 h-5 text-blue-400" /></div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-white/60">Executive Summary</h3>
-            </div>
-            <p className="text-white/80 leading-relaxed text-lg whitespace-pre-wrap">{report.explanation}</p>
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6">
+
+            {report.status === "pending" && user?.role === "evaluator" && (
+              <div className="glass rounded-[2rem] p-6 border-white/10">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-white/40 mb-6">Review Console</h3>
+                <textarea
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:ring-1 focus:ring-accent/40 transition mb-4 min-h-[120px] placeholder:text-white/20 resize-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                  placeholder="Submit your expert remarks here..."
+                  value={remarks}
+                  onChange={(e) => setRemarks(e.target.value)}
+                  disabled={submitting}
+                />
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => handleReview("verified")}
+                    disabled={submitting}
+                    className="flex-1 rounded-2xl bg-accent text-ink py-3 text-sm font-bold transition hover:bg-white disabled:opacity-50"
+                  >
+                    {actionType === "verified" ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Verify"}
+                  </button>
+                  <button
+                    onClick={() => handleReview("rejected")}
+                    disabled={submitting}
+                    className="flex-1 rounded-2xl bg-white/5 border border-white/10 py-3 text-sm font-bold text-white hover:bg-rose-500/20 hover:border-rose-500/30 transition disabled:opacity-50"
+                  >
+                    {actionType === "rejected" ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Reject"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* On-Chain Evidence */}
+            {isFinalized && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="glass rounded-[2rem] p-6 border-emerald-500/20 bg-emerald-500/[0.02]"
+              >
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="p-1.5 rounded-lg bg-emerald-500/10">
+                    <Fingerprint className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400">On-Chain Evidence</h3>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-white/30 mb-1.5">IPFS CID</p>
+                    <div className="flex items-center gap-2 bg-black/20 p-2.5 rounded-xl border border-white/5">
+                      <p className="text-[10px] font-mono text-white/60 truncate flex-1">{report.ipfs_cid}</p>
+                      <a href={`https://gateway.pinata.cloud/ipfs/${report.ipfs_cid}`} target="_blank" className="text-accent hover:text-white">
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-white/30 mb-1.5">Base Sepolia Proof</p>
+                    <div className="flex items-center gap-2 bg-black/20 p-2.5 rounded-xl border border-white/5">
+                      <p className="text-[10px] font-mono text-white/60 truncate flex-1">{report.tx_hash}</p>
+                      <a href={`https://base-sepolia.blockscout.com/tx/${report.tx_hash}`} target="_blank" className="text-accent hover:text-white">
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                  </div>
+                  <div className="pt-2 text-center">
+                    <p className="text-[10px] text-white/30 italic">Immutable and verified by Base Sepolia validators.</p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Evaluator Remarks (non-pending, not finalized) */}
+            {report.status !== "pending" && !isFinalized && report.evaluator_remarks && (
+              <div className="glass rounded-[2rem] p-6 border-white/5 italic text-white/50 text-sm">
+                &quot;{report.evaluator_remarks}&quot;
+              </div>
+            )}
+          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass rounded-[2rem] p-6 border-white/10"
+          >
+            <h3 className="text-xs font-bold uppercase tracking-wider text-white/40 mb-6">Report Lifecycle</h3>
+            <StatusTimeline report={report} />
+
+            {/* Evaluator remarks inline below the stepper */}
+            {report.status !== "pending" && report.evaluator_remarks && (
+              <div className="mt-5 pt-5 border-t border-white/5 italic text-white/50 text-sm">
+                &quot;{report.evaluator_remarks}&quot;
+              </div>
+            )}
           </motion.div>
 
-          <div className="grid gap-6 md:grid-cols-2">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass rounded-[2rem] p-6 border-white/10">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/20"><ShieldAlert className="w-5 h-5 text-rose-400" /></div>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-white/60">Risk Flags</h3>
+          {/* Row 1: Score + Meta pill strip */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.06 }}
+            className="glass rounded-[2rem] p-6 border-white/10"
+          >
+            <div className="flex flex-wrap items-center gap-6">
+              {/* Big score */}
+              <div className="flex items-end gap-2">
+                <span className="text-6xl font-bold text-white leading-none">{report.compliance_score ?? "--"}</span>
+                <span className="text-white/30 text-xl mb-1">/ 100</span>
               </div>
-              <ul className="space-y-4">
+
+              {/* Divider */}
+              <div className="hidden sm:block w-px h-14 bg-white/10" />
+
+              {/* Risk badge */}
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] uppercase tracking-widest text-white/30">Risk Level</span>
+                <span className={`inline-flex rounded-full px-4 py-1.5 text-sm font-bold border w-fit ${report.risk_level === "HIGH"
+                  ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                  : report.risk_level === "MEDIUM"
+                    ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                    : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                  }`}>
+                  {report.risk_level}
+                </span>
+              </div>
+
+              {/* Divider */}
+              <div className="hidden sm:block w-px h-14 bg-white/10" />
+
+              {/* Meta chips */}
+              <div className="flex flex-wrap gap-3 flex-1">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[10px] uppercase tracking-widest text-white/30">Status</span>
+                  <span className={`text-sm font-semibold capitalize ${report.status === "verified" ? "text-emerald-400"
+                    : report.status === "rejected" ? "text-rose-400"
+                      : "text-amber-400"
+                    }`}>{report.status}</span>
+                </div>
+                <div className="hidden sm:block w-px h-10 bg-white/10 self-center" />
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[10px] uppercase tracking-widest text-white/30">Regulator</span>
+                  <span className="text-sm text-white/80 font-medium">{report.workflow_input?.regulator || "RBI"}</span>
+                </div>
+                <div className="hidden sm:block w-px h-10 bg-white/10 self-center" />
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[10px] uppercase tracking-widest text-white/30">Created</span>
+                  <span className="text-sm text-white/80 font-medium">{new Date(report.created_at).toLocaleDateString()}</span>
+                </div>
+                {report.evaluation_metadata?.evaluator_name && (
+                  <>
+                    <div className="hidden sm:block w-px h-10 bg-white/10 self-center" />
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[10px] uppercase tracking-widest text-white/30">Reviewed by</span>
+                      <span className="text-sm text-white/80 font-medium">{report.evaluation_metadata.evaluator_name}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Row 2: Executive Summary */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08 }}
+            className="glass rounded-[2rem] p-8 border-white/10"
+          >
+            <div className="flex items-center gap-2 mb-5">
+              <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                <Info className="w-4 h-4 text-blue-400" />
+              </div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-white/40">Executive Summary</h3>
+            </div>
+            <p className="text-white/80 leading-relaxed text-base whitespace-pre-wrap">{report.explanation}</p>
+          </motion.div>
+
+          {/* Row 3: Risk Flags + Recommendations side by side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Risk Flags */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.14 }}
+              className="glass rounded-[2rem] p-6 border-white/10 flex flex-col min-h-[220px]"
+            >
+              <div className="flex items-center gap-2 mb-5">
+                <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/20">
+                  <ShieldAlert className="w-4 h-4 text-rose-400" />
+                </div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-white/40">Risk Flags</h3>
+              </div>
+              <ul className="space-y-3 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {(report.risk_flags || []).map((flag: string, i: number) => (
-                  <li key={i} className="flex gap-3 text-sm text-white/70 leading-6"><span className="shrink-0 h-1.5 w-1.5 rounded-full bg-rose-400 mt-2.5" />{flag}</li>
+                  <li key={i} className="flex gap-3 items-start text-sm text-white/70 leading-6">
+                    <span className="shrink-0 h-1.5 w-1.5 rounded-full bg-rose-400 mt-2.5" />
+                    <span>{flag}</span>
+                  </li>
                 ))}
-                {(!report.risk_flags || report.risk_flags.length === 0) && <p className="text-white/30 text-sm italic">No risk flags detected.</p>}
+                {(!report.risk_flags || report.risk_flags.length === 0) && (
+                  <p className="text-white/30 text-sm italic">No risk flags detected.</p>
+                )}
               </ul>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass rounded-[2rem] p-6 border-white/10">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20"><CheckCircle2 className="w-5 h-5 text-emerald-400" /></div>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-white/60">Recommendations</h3>
+            {/* Recommendations */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.18 }}
+              className="glass rounded-[2rem] p-6 border-white/10 flex flex-col min-h-[220px]"
+            >
+              <div className="flex items-center gap-2 mb-5">
+                <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                </div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-white/40">Recommendations</h3>
               </div>
-              <ul className="space-y-4">
+              <ul className="space-y-3 flex-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {(report.recommendations || []).map((rec: string, i: number) => (
-                  <li key={i} className="flex gap-3 text-sm text-white/70 leading-6"><span className="shrink-0 h-1.5 w-1.5 rounded-full bg-emerald-400 mt-2.5" />{rec}</li>
+                  <li key={i} className="flex gap-3 items-start text-sm text-white/70 leading-6">
+                    <span className="shrink-0 h-1.5 w-1.5 rounded-full bg-emerald-400 mt-2.5" />
+                    <span>{rec}</span>
+                  </li>
                 ))}
               </ul>
             </motion.div>
           </div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass rounded-[2rem] p-8 border-white/10">
-            <div className="flex items-center gap-2 mb-8">
-              <div className="p-2 rounded-lg bg-accent/10 border border-accent/20"><FileText className="w-5 h-5 text-accent" /></div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-white/60">Legal Citations</h3>
+          {/* Row 4: Legal Citations — full width */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.22 }}
+            className="glass rounded-[2rem] p-8 border-white/10"
+          >
+            <div className="flex items-center gap-2 mb-7">
+              <div className="p-2 rounded-lg bg-accent/10 border border-accent/20">
+                <FileText className="w-4 h-4 text-accent" />
+              </div>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-white/40">Legal Citations</h3>
             </div>
-            <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
               {(report.applicable_clauses || []).map((clause: any, i: number) => {
                 const backendBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1").replace(/\/api\/v1\/?$/, "");
                 const hasPath = clause.source && (clause.source.endsWith(".pdf") || clause.source.includes("/") || clause.source.includes("\\"));
                 const docUrl = hasPath ? `${backendBase}/docs/${clause.source.replace(/\\/g, "/")}` : null;
                 return (
-                <div key={i} className="border-l-2 border-accent/20 pl-6 py-1">
-                  {docUrl ? (
-                    <a href={docUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-mono text-accent mb-2 hover:text-white transition group">
-                      <FileText className="w-3.5 h-3.5 text-accent/60 group-hover:text-white transition" />
-                      {clause.source.split(/[/\\]/).pop() || clause.source}
-                      <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition" />
-                    </a>
-                  ) : (
-                    <p className="text-xs font-mono text-accent mb-2">{clause.source || "Regulation"}</p>
-                  )}
-                  <h4 className="text-white font-semibold mb-2">{clause.title || "Untitled Clause"}</h4>
-                  <p className="text-sm text-white/50 leading-relaxed italic line-clamp-3 hover:line-clamp-none transition-all cursor-pointer">&quot;{clause.text}&quot;</p>
-                </div>
+                  <div key={i} className="border-l-2 border-accent/20 pl-5 py-1">
+                    {docUrl ? (
+                      <a href={docUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-mono text-accent mb-1.5 hover:text-white transition group">
+                        <FileText className="w-3 h-3 text-accent/60 group-hover:text-white transition" />
+                        {clause.source.split(/[/\\]/).pop() || clause.source}
+                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition" />
+                      </a>
+                    ) : (
+                      <p className="text-xs font-mono text-accent mb-1.5">{clause.source || "Regulation"}</p>
+                    )}
+                    <h4 className="text-white font-semibold text-sm mb-1.5">{clause.title || "Untitled Clause"}</h4>
+                    <p className="text-xs text-white/45 leading-relaxed italic line-clamp-3 hover:line-clamp-none transition-all cursor-pointer">&quot;{clause.text}&quot;</p>
+                  </div>
                 );
               })}
               {(!report.applicable_clauses || report.applicable_clauses.length === 0) && (
-                <div className="text-center py-10 opacity-30"><FileText className="w-10 h-10 mx-auto mb-2" /><p>No clauses linked.</p></div>
+                <div className="col-span-2 text-center py-10 opacity-30">
+                  <FileText className="w-10 h-10 mx-auto mb-2" />
+                  <p>No clauses linked.</p>
+                </div>
               )}
             </div>
           </motion.div>
-        </div>
-
-        <div className="space-y-6">
-          <div className="glass rounded-[2rem] p-6 border-white/10">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-white/40 mb-6">Report Health</h3>
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <span className="block text-xs text-white/40 mb-1">Score</span>
-                <span className="text-4xl font-bold text-white">{report.compliance_score ?? "--"}</span>
-                <span className="text-white/40 text-sm ml-1">/ 100</span>
-              </div>
-              <div className="text-right">
-                <span className="block text-xs text-white/40 mb-1">Risk Level</span>
-                <span className={`inline-flex rounded-full px-4 py-1 text-sm font-bold border ${report.risk_level === "HIGH" ? "bg-rose-500/10 text-rose-400 border-rose-500/20" : report.risk_level === "MEDIUM" ? "bg-amber-500/10 text-amber-400 border-amber-500/20" : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"}`}>{report.risk_level}</span>
-              </div>
-            </div>
-            <div className="pt-6 border-t border-white/5 space-y-4">
-              <div className="flex justify-between text-sm"><span className="text-white/40">Status</span><span className={`capitalize font-semibold ${report.status === "verified" ? "text-emerald-400" : report.status === "rejected" ? "text-rose-400" : "text-amber-400"}`}>{report.status}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-white/40">Regulator</span><span className="text-white/80">{report.workflow_input?.regulator || "RBI"}</span></div>
-              <div className="flex justify-between text-sm"><span className="text-white/40">Created</span><span className="text-white/80">{new Date(report.created_at).toLocaleDateString()}</span></div>
-              {report.evaluation_metadata?.evaluator_name && (
-                <div className="flex justify-between text-sm"><span className="text-white/40">Reviewed by</span><span className="text-white/80">{report.evaluation_metadata.evaluator_name}</span></div>
-              )}
-            </div>
-          </div>
-
-          <StatusTimeline report={report} />
-
-          {report.status === "pending" && (
-            <div className="glass rounded-[2rem] p-6 border-white/10">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-white/40 mb-6">Review Console</h3>
-              <textarea className="w-full bg-white/[0.03] border border-white/10 rounded-2xl p-4 text-sm text-white focus:outline-none focus:ring-1 focus:ring-accent/40 transition mb-4 min-h-[120px] placeholder:text-white/20" placeholder="Submit your expert remarks here..." value={remarks} onChange={(e) => setRemarks(e.target.value)} disabled={submitting} />
-              <div className="flex gap-3">
-                <button onClick={() => handleReview("verified")} disabled={submitting} className="flex-1 rounded-2xl bg-emerald-500 text-ink py-3 text-sm font-bold transition hover:bg-white disabled:opacity-50">{actionType === "verified" ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Verify"}</button>
-                <button onClick={() => handleReview("rejected")} disabled={submitting} className="flex-1 rounded-2xl bg-white/5 border border-white/10 py-3 text-sm font-bold text-white hover:bg-rose-500/20 hover:border-rose-500/30 transition disabled:opacity-50">{actionType === "rejected" ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Reject"}</button>
-              </div>
-            </div>
-          )}
-
-          {isFinalized && (
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass rounded-[2rem] p-6 border-emerald-500/20 bg-emerald-500/[0.02]">
-              <div className="flex items-center gap-2 mb-6"><div className="p-1.5 rounded-lg bg-emerald-500/10"><Fingerprint className="w-4 h-4 text-emerald-400" /></div><h3 className="text-xs font-bold uppercase tracking-wider text-emerald-400">On-Chain Evidence</h3></div>
-              <div className="space-y-4">
-                <div><p className="text-[10px] uppercase tracking-wider text-white/30 mb-1.5">IPFS CID</p><div className="flex items-center gap-2 bg-black/20 p-2.5 rounded-xl border border-white/5"><p className="text-[10px] font-mono text-white/60 truncate flex-1">{report.ipfs_cid}</p><a href={`https://gateway.pinata.cloud/ipfs/${report.ipfs_cid}`} target="_blank" className="text-accent hover:text-white"><ExternalLink className="w-3 h-3" /></a></div></div>
-                <div><p className="text-[10px] uppercase tracking-wider text-white/30 mb-1.5">Base Sepolia Proof</p><div className="flex items-center gap-2 bg-black/20 p-2.5 rounded-xl border border-white/5"><p className="text-[10px] font-mono text-white/60 truncate flex-1">{report.tx_hash}</p><a href={`https://base-sepolia.blockscout.com/tx/${report.tx_hash}`} target="_blank" className="text-accent hover:text-white"><ExternalLink className="w-3 h-3" /></a></div></div>
-                <div className="pt-2 text-center"><p className="text-[10px] text-white/30 italic">Immutable and verified by Base Sepolia validators.</p></div>
-              </div>
-            </motion.div>
-          )}
-
-          {report.status !== "pending" && !isFinalized && report.evaluator_remarks && (
-            <div className="glass rounded-[2rem] p-6 border-white/5 italic text-white/50 text-sm">&quot;{report.evaluator_remarks}&quot;</div>
-          )}
-        </div>
       </div>
     </div>
   );

@@ -131,10 +131,19 @@ export default function WorkflowChatPage() {
                 {m.role === "user" ? <UserIcon className="w-4 h-4 text-white/40" /> : <ShieldAlert className="w-4 h-4 text-accent" />}
               </div>
               <div className={`max-w-[80%] space-y-3 ${m.role === "user" ? "items-end" : ""}`}>
-                <div className={`rounded-2xl p-4 text-sm leading-relaxed ${m.role === "user" ? "bg-white/[0.05] text-white/90" : "bg-accent/5 text-white/80 border border-accent/10"}`}>
-                  {m.content}
-                </div>
-                
+                <div 
+                  className={`rounded-2xl p-4 text-sm leading-relaxed ${m.role === "user" ? "bg-white/[0.05] text-white/90" : "bg-accent/5 text-white/80 border border-accent/10"}`}
+                  dangerouslySetInnerHTML={{ 
+                    __html: m.content
+                      // Replace opening heading tags with styled strong tags and spacing
+                      .replace(/<h[1-6]>/gi, "<br/><br/><strong class='text-accent uppercase tracking-wider block mb-2'>")
+                      // Replace closing heading tags
+                      .replace(/<\/h[1-6]>/gi, "</strong>")
+                      // Add some spacing to normal paragraphs if AI uses <p>
+                      .replace(/<p>/gi, "<div class='mb-2'>")
+                      .replace(/<\/p>/gi, "</div>") 
+                  }}
+                />
                 {/* Sources — shown as clickable PDF links */}
                 {m.role === "ai" && m.sources && m.sources.length > 0 && (
                   <div className="pt-1 space-y-1.5">

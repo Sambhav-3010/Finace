@@ -58,6 +58,12 @@ def build_compliance_prompt(
         f"{existing_block}\n"
         f"Regulatory Context (The Evidence):\n{context}\n\n"
         "Expected Explanation Style:\n"
-        "Write a substantial, multi-paragraph deep analysis. First, summarize the legal standing in detail. Then, provide a comprehensive, numbered list of EVERY specific requirement or point (Point 1, Point 2, ... Point 10) found in the context. Never truncate your response.\n\n"
+        "Write a MASSIVE, exhaustive, multi-page equivalent deep analysis. Break it down into the following sections:\n"
+        "1. Executive Overview: A comprehensive summary of the legal standing.\n"
+        "2. Detailed Risk Breakdown: A meticulous, point-by-point analysis of every single risk identified.\n"
+        "3. Regulatory Mapping: How the workflow maps to specific regulatory clauses.\n"
+        "4. Operational Impact: What this means for the business process.\n"
+        "5. Remediation Plan: An exhaustive, step-by-step list of actions required to achieve compliance.\n"
+        "NEVER truncate your response. Provide the maximum possible detail.\n\n"
         f"Output JSON schema:\n{json.dumps(output_schema)}"
     )

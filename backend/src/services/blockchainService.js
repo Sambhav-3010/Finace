@@ -43,6 +43,7 @@ export async function storeComplianceProof(payload) {
         CONTRACT_ADDRESS: contractAddress,
       },
       windowsHide: true,
+      shell: process.platform === "win32",
     });
 
     let stdout = "";
