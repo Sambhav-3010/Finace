@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowRight, ShieldAlert, ChevronDown, Check, 
   MessageSquare, Send, FileCheck, RefreshCw, 
-  AlertCircle, ChevronRight, User as UserIcon, Bot
+  AlertCircle, ChevronRight, User as UserIcon, Bot,
+  ExternalLink
 } from "lucide-react";
 import { workflowApi, queryCompliance } from "@/services/api";
 
@@ -64,7 +65,7 @@ export default function WorkflowChatPage() {
       setMessages(prev => [...prev, { 
         role: "ai", 
         content: data.answer || data.analysis?.explanation || "I've analyzed your workflow. Does this match your intended logic?",
-        sources: data.retrieval_hits || data.analysis?.applicable_clauses || [],
+        sources: data.sources || data.retrieval_hits || data.analysis?.applicable_clauses || [],
         data: data.analysis || {} 
       }]);
     } catch (err) {
@@ -112,7 +113,8 @@ export default function WorkflowChatPage() {
 
       {/* Chat Area */}
       <div className="flex-1 glass rounded-[2rem] overflow-hidden flex flex-col">
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth">
+        <div ref={scrollRef} data-hide-scrollbar className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+          <style>{`[data-hide-scrollbar]::-webkit-scrollbar { display: none; }`}</style>
           {messages.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center text-center opacity-40 max-w-sm mx-auto">
               <Bot className="w-12 h-12 mb-4" />
@@ -120,7 +122,9 @@ export default function WorkflowChatPage() {
             </div>
           )}
 
-          {messages.map((m, i) => (
+          {messages.map((m, i) => {
+            const backendBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1").replace(/\/api\/v1\/?$/, "");
+            return (
             <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
               className={`flex gap-4 ${m.role === "user" ? "flex-row-reverse" : ""}`}>
               <div className={`w-8 h-8 rounded-lg shrink-0 flex items-center justify-center border ${m.role === "user" ? "bg-white/5 border-white/10" : "bg-accent/10 border-accent/20"}`}>
@@ -131,39 +135,29 @@ export default function WorkflowChatPage() {
                   {m.content}
                 </div>
                 
-                {/* Sources Section */}
+                {/* Sources — shown as clickable PDF links */}
                 {m.role === "ai" && m.sources && m.sources.length > 0 && (
-                  <div className="space-y-2">
-                    <button 
-                      onClick={() => setExpandedSource(expandedSource === i ? null : i)}
-                      className="flex items-center gap-2 text-[10px] font-bold text-accent uppercase tracking-widest hover:text-white transition-colors"
-                    >
-                      <FileCheck className="w-3 h-3" />
-                      {expandedSource === i ? "Hide Sources" : `View ${m.sources.length} Sources`}
-                    </button>
-                    
-                    <AnimatePresence>
-                      {expandedSource === i && (
-                        <motion.div 
-                          initial={{ opacity: 0, height: 0 }} 
-                          animate={{ opacity: 1, height: "auto" }} 
-                          exit={{ opacity: 0, height: 0 }}
-                          className="space-y-2 overflow-hidden"
-                        >
-                          {m.sources.slice(0, 3).map((source, si) => (
-                            <div key={si} className="bg-white/[0.03] border border-white/5 rounded-xl p-3 space-y-1">
-                              <div className="flex items-center justify-between text-[10px] text-white/40">
-                                <span className="font-mono">{source.document_id || source.source || "Regulation"}</span>
-                                <span>{source.section || source.title || ""}</span>
-                              </div>
-                              <p className="text-[11px] text-white/60 line-clamp-2 italic">
-                                "{source.text || source.content || ""}"
-                              </p>
-                            </div>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                  <div className="pt-1 space-y-1.5">
+                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Sources</p>
+                    {m.sources.map((source: any, si: number) => {
+                      const relPath = source.relative_path || source.source_file || "";
+                      const hasFile = relPath && (relPath.endsWith(".pdf") || relPath.includes("/") || relPath.includes("\\"));
+                      const docUrl = hasFile ? `${backendBase}/docs/${encodeURI(relPath.replace(/\\/g, "/"))}` : null;
+                      const fileName = relPath ? relPath.split(/[/\\]/).pop() : (source.document_id || "Regulation");
+                      return docUrl ? (
+                        <a key={si} href={docUrl} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-xs text-accent hover:text-white transition group">
+                          <FileCheck className="w-3.5 h-3.5 shrink-0 text-accent/60 group-hover:text-white transition" />
+                          <span className="truncate">{fileName}</span>
+                          <ExternalLink className="w-3 h-3 shrink-0 opacity-40 group-hover:opacity-100 transition" />
+                        </a>
+                      ) : (
+                        <p key={si} className="text-xs text-white/40 flex items-center gap-2">
+                          <FileCheck className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">{fileName}</span>
+                        </p>
+                      );
+                    })}
                   </div>
                 )}
 
@@ -178,7 +172,8 @@ export default function WorkflowChatPage() {
                 )}
               </div>
             </motion.div>
-          ))}
+            );
+          })}
           {loading && (
             <div className="flex gap-4">
               <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center animate-pulse">

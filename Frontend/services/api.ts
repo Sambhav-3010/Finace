@@ -67,6 +67,7 @@ export const reportsApi = {
 };
 
 export const docsApi = {
+  getTree: () => api.get("/docs/tree"),
   generate: (payload: any) => api.post("/docs/generate", payload), // Note: Mock endpoint until implemented on backend
 };
 
