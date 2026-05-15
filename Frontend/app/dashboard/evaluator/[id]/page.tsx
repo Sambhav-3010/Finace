@@ -191,13 +191,26 @@ export default function ReportReviewPage({ params }: { params: Promise<{ id: str
               <h3 className="text-sm font-bold uppercase tracking-wider text-white/60">Legal Citations</h3>
             </div>
             <div className="space-y-6">
-              {(report.applicable_clauses || []).map((clause: any, i: number) => (
+              {(report.applicable_clauses || []).map((clause: any, i: number) => {
+                const backendBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1").replace(/\/api\/v1\/?$/, "");
+                const hasPath = clause.source && (clause.source.endsWith(".pdf") || clause.source.includes("/") || clause.source.includes("\\"));
+                const docUrl = hasPath ? `${backendBase}/docs/${clause.source.replace(/\\/g, "/")}` : null;
+                return (
                 <div key={i} className="border-l-2 border-accent/20 pl-6 py-1">
-                  <p className="text-xs font-mono text-accent mb-2">{clause.source || "Regulation"}</p>
+                  {docUrl ? (
+                    <a href={docUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-mono text-accent mb-2 hover:text-white transition group">
+                      <FileText className="w-3.5 h-3.5 text-accent/60 group-hover:text-white transition" />
+                      {clause.source.split(/[/\\]/).pop() || clause.source}
+                      <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition" />
+                    </a>
+                  ) : (
+                    <p className="text-xs font-mono text-accent mb-2">{clause.source || "Regulation"}</p>
+                  )}
                   <h4 className="text-white font-semibold mb-2">{clause.title || "Untitled Clause"}</h4>
                   <p className="text-sm text-white/50 leading-relaxed italic line-clamp-3 hover:line-clamp-none transition-all cursor-pointer">&quot;{clause.text}&quot;</p>
                 </div>
-              ))}
+                );
+              })}
               {(!report.applicable_clauses || report.applicable_clauses.length === 0) && (
                 <div className="text-center py-10 opacity-30"><FileText className="w-10 h-10 mx-auto mb-2" /><p>No clauses linked.</p></div>
               )}

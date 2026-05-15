@@ -32,6 +32,7 @@ data/
 .cache/
 huggingface/
 RBI DOCS/
+!backend/public/docs/
 
 # VS Code
 .vscode/
