@@ -17,7 +17,10 @@ export function ReportDetails({ report }: { report: any }) {
           </div>
           <h3 className="text-xs font-bold uppercase tracking-wider text-white/40">Executive Summary</h3>
         </div>
-        <p className="text-white/80 leading-relaxed text-base whitespace-pre-wrap">{report.explanation}</p>
+        <div 
+          className="text-white/80 leading-relaxed text-base prose-custom"
+          dangerouslySetInnerHTML={{ __html: report.explanation }} 
+        />
       </motion.div>
 
       {/* Row 3: Risk Flags + Recommendations side by side */}
