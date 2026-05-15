@@ -8,7 +8,7 @@ import { ShieldAlert, RefreshCw, Fingerprint, ChevronLeft, Loader2, Lock } from 
 import { motion } from "framer-motion";
 import { useAppStore } from "@/store/appStore";
 import { ethers } from "ethers";
-import { COMPLIANCE_ABI } from "@/constants/abi";
+import { COMPLIANCE_ABI, CONTRACT_ADDRESS } from "@/constants/abi";
 
 import { StatusTimeline } from "@/components/reports/StatusTimeline";
 import { ReviewConsole } from "@/components/reports/ReviewConsole";
@@ -38,8 +38,31 @@ export default function ReportReviewPage({ params }: { params: Promise<{ id: str
   const fetchReport = async () => {
     try {
       const data: any = await reportsApi.getById(id);
-      setReport(data.report);
-      setRemarks(data.report?.evaluator_remarks || "");
+      let reportData = data.report;
+      
+      // Check if report is already on blockchain (in case DB is out of sync)
+      if (reportData && !reportData.tx_hash && typeof window !== "undefined" && window.ethereum) {
+        try {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          const contract = new ethers.Contract(CONTRACT_ADDRESS, COMPLIANCE_ABI, provider);
+          const onChainReport = await contract.getReport(id);
+          
+          if (onChainReport && onChainReport.ipfsCid && onChainReport.ipfsCid !== "") {
+            console.log("Found report on-chain but not in DB, syncing UI...");
+            reportData = {
+              ...reportData,
+              ipfs_cid: onChainReport.ipfsCid,
+              tx_hash: "0x_ON_CHAIN_SYNCED", // Placeholder to trigger isFinalized
+              status: "verified"
+            };
+          }
+        } catch (chainErr) {
+          console.warn("Blockchain sync check failed:", chainErr);
+        }
+      }
+
+      setReport(reportData);
+      setRemarks(reportData?.evaluator_remarks || "");
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
   };
@@ -150,13 +173,26 @@ export default function ReportReviewPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={handleUpdate} disabled={submitting} className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 hover:bg-white/5 transition disabled:opacity-50">
-            {actionType === "updating" ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Improve Analysis (AI)
-          </button>
-          {!isFinalized && report.status === "verified" && (
-            <button onClick={() => { setIsModalOpen(true); setModalStatus("idle"); }} disabled={submitting} className="flex items-center gap-2 rounded-full bg-accent px-5 py-2 text-sm font-bold text-ink hover:bg-white transition disabled:opacity-50">
-              <Fingerprint className="w-4 h-4" /> Generate Proof
-            </button>
+          {isFinalized ? (
+            <a 
+              href={`https://gateway.pinata.cloud/ipfs/${report.ipfs_cid}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-5 py-2 text-sm font-bold text-emerald-400 hover:bg-emerald-500/20 transition"
+            >
+              <Lock className="w-4 h-4" /> View PDF Report
+            </a>
+          ) : (
+            <>
+              <button onClick={handleUpdate} disabled={submitting} className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 hover:bg-white/5 transition disabled:opacity-50">
+                {actionType === "updating" ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Improve Analysis (AI)
+              </button>
+              {report.status === "verified" && (
+                <button onClick={() => { setIsModalOpen(true); setModalStatus("idle"); }} disabled={submitting} className="flex items-center gap-2 rounded-full bg-accent px-5 py-2 text-sm font-bold text-ink hover:bg-white transition disabled:opacity-50">
+                  <Fingerprint className="w-4 h-4" /> Generate Proof
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -164,7 +200,7 @@ export default function ReportReviewPage({ params }: { params: Promise<{ id: str
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-6">
 
-          {report.status === "pending" && user?.role === "evaluator" && (
+          {report.status === "pending" && !isFinalized && user?.role === "evaluator" && (
             <ReviewConsole 
               remarks={remarks} 
               setRemarks={setRemarks} 
