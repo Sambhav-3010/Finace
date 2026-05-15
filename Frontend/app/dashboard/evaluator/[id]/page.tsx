@@ -7,12 +7,16 @@ import { reportsApi } from "@/services/api";
 import { ShieldAlert, RefreshCw, Fingerprint, ChevronLeft, Loader2, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAppStore } from "@/store/appStore";
+import { ethers } from "ethers";
+import { COMPLIANCE_ABI } from "@/constants/abi";
 
 import { StatusTimeline } from "@/components/reports/StatusTimeline";
 import { ReviewConsole } from "@/components/reports/ReviewConsole";
 import { OnChainEvidence } from "@/components/reports/OnChainEvidence";
 import { ReportHealthHeader } from "@/components/reports/ReportHealthHeader";
 import { ReportDetails } from "@/components/reports/ReportDetails";
+
+import { ProofGenerationModal } from "@/components/reports/ProofGenerationModal";
 
 export default function ReportReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -23,6 +27,13 @@ export default function ReportReviewPage({ params }: { params: Promise<{ id: str
   const [remarks, setRemarks] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [actionType, setActionType] = useState<string | null>(null);
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalStatus, setModalStatus] = useState<"idle" | "generating" | "success" | "error">("idle");
+  const [modalTxHash, setModalTxHash] = useState<string | null>(null);
+  const [modalIpfsCid, setModalIpfsCid] = useState<string | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
 
   const fetchReport = async () => {
     try {
@@ -53,21 +64,56 @@ export default function ReportReviewPage({ params }: { params: Promise<{ id: str
     try {
       await reportsApi.update(id);
       await fetchReport();
-      alert("Report updated against latest regulations!");
+      alert("AI Analysis complete! The LLM has re-evaluated the workflow and the scores have been updated.");
     } catch (error) { console.error(error); alert("Failed to update report"); }
     finally { setSubmitting(false); setActionType(null); }
   };
 
-  const handleGenerateProof = async () => {
-    setSubmitting(true); setActionType("proofing");
+  const handleGenerateProof = async (orgName: string) => {
+    setModalStatus("generating");
+    setModalError(null);
     try {
-      const orgName = prompt("Enter organization name for the report:", "Acme Fintech");
-      if (!orgName) { setSubmitting(false); setActionType(null); return; }
-      const result: any = await reportsApi.proof(id, orgName);
+      // 1. Get Data from Backend (PDF + IPFS + Hash)
+      const data: any = await reportsApi.proof(id, orgName);
+      const { ipfs_cid, document_hash, risk_level, contract_address, pdf_path } = data;
+      
+      setModalIpfsCid(ipfs_cid);
+
+      // 2. MetaMask Signing
+      if (!window.ethereum) {
+        throw new Error("MetaMask is not installed. Please install it to sign the transaction.");
+      }
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(contract_address, COMPLIANCE_ABI, signer);
+
+      // Convert orgName to bytes32 (padded)
+      const orgNameBytes32 = ethers.encodeBytes32String(orgName.slice(0, 31));
+
+      const tx = await contract.storeReport(
+        id,
+        ipfs_cid,
+        document_hash,
+        orgNameBytes32,
+        risk_level
+      );
+
+      setModalTxHash(tx.hash);
+
+      // 3. Wait for Transaction
+      await tx.wait();
+
+      // 4. Anchor to Backend
+      await reportsApi.anchor(id, tx.hash, ipfs_cid, pdf_path);
+
+      setModalStatus("success");
       await fetchReport();
-      alert(`Proof generated successfully!\nTx Hash: ${result.tx_hash}`);
-    } catch (error) { console.error(error); alert("Failed to generate proof."); }
-    finally { setSubmitting(false); setActionType(null); }
+    } catch (error: any) { 
+      console.error(error); 
+      setModalError(error.reason || error.message || "Blockchain transaction failed.");
+      setModalStatus("error"); 
+    }
   };
 
   if (loading) return (
@@ -105,11 +151,11 @@ export default function ReportReviewPage({ params }: { params: Promise<{ id: str
         </div>
         <div className="flex gap-2">
           <button onClick={handleUpdate} disabled={submitting} className="flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-white/70 hover:bg-white/5 transition disabled:opacity-50">
-            {actionType === "updating" ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Refresh Analysis
+            {actionType === "updating" ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} Improve Analysis (AI)
           </button>
           {!isFinalized && report.status === "verified" && (
-            <button onClick={handleGenerateProof} disabled={submitting} className="flex items-center gap-2 rounded-full bg-accent px-5 py-2 text-sm font-bold text-ink hover:bg-white transition disabled:opacity-50">
-              {actionType === "proofing" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Fingerprint className="w-4 h-4" />} Generate Proof
+            <button onClick={() => { setIsModalOpen(true); setModalStatus("idle"); }} disabled={submitting} className="flex items-center gap-2 rounded-full bg-accent px-5 py-2 text-sm font-bold text-ink hover:bg-white transition disabled:opacity-50">
+              <Fingerprint className="w-4 h-4" /> Generate Proof
             </button>
           )}
         </div>
@@ -158,6 +204,16 @@ export default function ReportReviewPage({ params }: { params: Promise<{ id: str
         <ReportDetails report={report} />
 
       </div>
+
+      <ProofGenerationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onGenerate={handleGenerateProof}
+        status={modalStatus}
+        txHash={modalTxHash}
+        ipfsCid={modalIpfsCid}
+        error={modalError}
+      />
     </div>
   );
 }

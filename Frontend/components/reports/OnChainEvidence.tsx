@@ -18,11 +18,16 @@ export function OnChainEvidence({ report }: { report: any }) {
       </div>
       <div className="space-y-4">
         <div>
-          <p className="text-[10px] uppercase tracking-wider text-white/30 mb-1.5">IPFS CID</p>
+          <p className="text-[10px] uppercase tracking-wider text-white/30 mb-1.5">PDF Report (IPFS)</p>
           <div className="flex items-center gap-2 bg-black/20 p-2.5 rounded-xl border border-white/5">
             <p className="text-[10px] font-mono text-white/60 truncate flex-1">{report.ipfs_cid}</p>
-            <a href={`https://gateway.pinata.cloud/ipfs/${report.ipfs_cid}`} target="_blank" rel="noreferrer" className="text-accent hover:text-white">
-              <ExternalLink className="w-3 h-3" />
+            <a 
+              href={`https://gateway.pinata.cloud/ipfs/${report.ipfs_cid}`} 
+              target="_blank" 
+              rel="noreferrer" 
+              className="flex items-center gap-1.5 px-3 py-1 rounded border border-accent/20 bg-accent/10 text-[10px] font-bold uppercase text-accent hover:bg-accent hover:text-ink transition"
+            >
+              View PDF <ExternalLink className="w-3 h-3" />
             </a>
           </div>
         </div>

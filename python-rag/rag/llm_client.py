@@ -40,7 +40,7 @@ def _extract_json_object(text: str) -> dict:
         except Exception:
             pass
             
-    raise ValueError("Could not parse JSON from model response")
+    raise ValueError(f"Could not parse JSON from model response. Raw text: {cleaned[:500]}...")
 
 
 class LLMClient:
