@@ -1,40 +1,50 @@
-import type { Route } from "next";
-import Link from "next/link";
+"use client";
 
-const navItems = [
-  { label: "Home", href: "/" as Route },
-  { label: "Solutions", href: "/#capabilities" as Route },
-  { label: "Regulations", href: "/dashboard/regulations" as Route },
-  { label: "Workflow", href: "/dashboard" as Route },
-  { label: "Company", href: "/#capabilities" as Route },
-];
+import { motion } from "framer-motion";
+import Link from "next/link";
+import { ShieldCheck } from "lucide-react";
 
 export function Navbar() {
   return (
-    <div className="shell pt-6">
-      <div className="glass flex items-center justify-between rounded-full px-4 py-3">
-        <Link href="/" className="text-sm font-semibold tracking-[0.24em] text-white/90 uppercase">
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="shell pt-6"
+    >
+      <div className="glass flex items-center justify-between rounded-full px-5 py-3">
+        <Link href="/" className="flex items-center gap-2 text-sm font-bold tracking-[0.24em] text-white/90 uppercase">
+          <ShieldCheck className="w-5 h-5 text-accent" />
           Finace
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-white/65 md:flex">
-          {navItems.map((item) => (
-            <Link key={item.label} href={item.href} className="transition hover:text-white">
+          {[
+            { label: "Features", href: "#capabilities" },
+            { label: "How It Works", href: "#how-it-works" },
+            { label: "Architecture", href: "#architecture" },
+          ].map((item) => (
+            <a
+              key={item.label}
+              href={item.href}
+              className="transition hover:text-white"
+            >
               {item.label}
-            </Link>
+            </a>
           ))}
         </nav>
         <div className="flex items-center gap-3">
-          <Link href="#" className="hidden text-sm text-white/60 sm:inline-flex">
-            RBI + FATF synced
-          </Link>
+          <span className="hidden items-center gap-1.5 text-xs text-white/40 sm:inline-flex">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Systems Online
+          </span>
           <Link
-            href="/dashboard"
-            className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-ink transition hover:bg-white"
+            href="/login"
+            className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-white hover:shadow-[0_0_20px_rgba(126,240,207,0.3)]"
           >
-            Open Platform
+            Sign In
           </Link>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
