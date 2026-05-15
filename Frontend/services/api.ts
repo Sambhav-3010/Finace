@@ -65,7 +65,7 @@ export const reportsApi = {
   proof: (report_id: string, org_name: string) => 
     api.post("/reports/proof", { report_id, org_name }),
   anchor: (report_id: string, tx_hash: string, ipfs_cid?: string, pdf_path?: string) =>
-    api.post("/anchor", { report_id, tx_hash, ipfs_cid, pdf_path }),
+    api.post("/reports/anchor", { report_id, tx_hash, ipfs_cid, pdf_path }),
 };
 
 export const docsApi = {
