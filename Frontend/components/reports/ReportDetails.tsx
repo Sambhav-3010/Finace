@@ -91,21 +91,46 @@ export function ReportDetails({ report }: { report: any }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
           {(report.applicable_clauses || []).map((clause: any, i: number) => {
             const backendBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1").replace(/\/api\/v1\/?$/, "");
-            const hasPath = clause.source && (clause.source.endsWith(".pdf") || clause.source.includes("/") || clause.source.includes("\\"));
-            const docUrl = hasPath ? `${backendBase}/docs/${clause.source.replace(/\\/g, "/")}` : null;
+            
+            const source = clause.source || "";
+            // A source is considered a document link if it's not a generic placeholder
+            // and it either ends with .pdf OR it looks like a slug (has hyphens/underscores and no spaces)
+            const isGeneric = !source || source === "Regulation" || source === "N/A" || source.toLowerCase().includes("guidelines") || source.toLowerCase().includes("circular");
+            const looksLikeSlug = !source.includes(" ") && (source.includes("-") || source.includes("_"));
+            const isDoc = !isGeneric && (source.endsWith(".pdf") || looksLikeSlug);
+            
+            // The backend now handles recursive search and extension matching, so we just send the source name
+            const docUrl = isDoc ? `${backendBase}/docs/${encodeURIComponent(source)}` : null;
+            
             return (
-              <div key={i} className="border-l-2 border-accent/20 pl-5 py-1">
-                {docUrl ? (
-                  <a href={docUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-mono text-accent mb-1.5 hover:text-white transition group">
-                    <FileText className="w-3 h-3 text-accent/60 group-hover:text-white transition" />
-                    {clause.source.split(/[/\\]/).pop() || clause.source}
-                    <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition" />
-                  </a>
-                ) : (
-                  <p className="text-xs font-mono text-accent mb-1.5">{clause.source || "Regulation"}</p>
-                )}
-                <h4 className="text-white font-semibold text-sm mb-1.5">{clause.title || "Untitled Clause"}</h4>
-                <p className="text-xs text-white/45 leading-relaxed italic line-clamp-3 hover:line-clamp-none transition-all cursor-pointer">&quot;{clause.text}&quot;</p>
+              <div 
+                key={i} 
+                onClick={() => docUrl && window.open(docUrl, "_blank")}
+                title={docUrl ? `View ${source}` : ""}
+                className={`group relative border-l-2 border-accent/20 pl-5 py-3 transition-all duration-300 hover:border-accent hover:bg-white/[0.03] rounded-r-2xl ${docUrl ? "cursor-pointer" : ""}`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5 text-[10px] font-mono text-accent/60 group-hover:text-accent transition-colors">
+                    <FileText className="w-3.5 h-3.5" />
+                    <span className="truncate max-w-[200px]">{source || "Legal Reference"}</span>
+                  </div>
+                  {docUrl && (
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-accent opacity-0 group-hover:opacity-100 transition-all">
+                      VIEW PDF <ExternalLink className="w-3 h-3" />
+                    </div>
+                  )}
+                </div>
+                
+                <h4 className="text-white font-semibold text-sm mb-2 group-hover:text-accent transition-colors">
+                  {clause.title || "Compliance Clause"}
+                </h4>
+                
+                <div className="relative overflow-hidden transition-all duration-500 ease-in-out max-h-16 group-hover:max-h-[500px]">
+                  <p className="text-xs text-white/45 leading-relaxed italic group-hover:text-white/70 transition-colors">
+                    &quot;{clause.text}&quot;
+                  </p>
+                  <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-[#0d1413] to-transparent group-hover:opacity-0 transition-opacity duration-300" />
+                </div>
               </div>
             );
           })}
