@@ -2,13 +2,14 @@
 # Local full stack: pip install -r requirements-local.txt
 # Local PDF ingest: pip install -r requirements-ingest.txt
 
-fastembed==0.4.2
+# 0.4.x caps at Python <3.13; Ubuntu 26 ships Python 3.14
+fastembed>=0.8.0
 
 pymongo==4.8.0
 motor==3.5.1
 
-numpy==1.26.4
-scikit-learn==1.5.2
+numpy>=2.1.0
+scikit-learn>=1.6.0
 
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
