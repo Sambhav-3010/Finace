@@ -1,21 +1,14 @@
-# Render / production API — NO PyMuPDF (safe on Python 3.12 free tier).
-# Local ingestion: also run  pip install -r requirements-ingest.txt
+# Render / production API — tuned for 512MB free tier (no PyTorch).
+# Local full stack: pip install -r requirements-local.txt
+# Local PDF ingest: pip install -r requirements-ingest.txt
 
---extra-index-url https://download.pytorch.org/whl/cpu
-torch==2.4.1+cpu
-
-sentence-transformers==3.1.1
-transformers==4.44.2
-tiktoken==0.7.0
-nltk==3.9.1
+fastembed==0.4.2
 
 pymongo==4.8.0
 motor==3.5.1
 
 numpy==1.26.4
 scikit-learn==1.5.2
-shap==0.46.0
-lime==0.2.0.1
 
 fastapi==0.115.0
 uvicorn[standard]==0.30.6

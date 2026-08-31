@@ -24,6 +24,7 @@ import numpy as np
 from loguru import logger
 
 from rules.rules_config import RULES
+from config import settings
 
 
 _CONTROL_FEATURES: list[tuple[str, list[str]]] = [
@@ -179,6 +180,18 @@ def _explain_with_lime(x0: np.ndarray, spec: FeatureSpec, n_samples: int = 400) 
     neighbors = _generate_neighbors(x0, n_samples=n_samples)
     scores = np.array([score_from_features(row, spec) for row in neighbors], dtype=float)
 
+    if settings.rag_light_xai:
+        coefs = _local_linear_importances(x0, neighbors, scores)
+        order = np.argsort(np.abs(coefs))[::-1][:10]
+        return [
+            {
+                "feature": spec.names[i],
+                "weight": round(float(coefs[i]), 4),
+                "direction": "increases_score" if coefs[i] > 0 else "decreases_score",
+            }
+            for i in order
+        ]
+
     try:
         from lime.lime_tabular import LimeTabularExplainer
 
@@ -227,6 +240,20 @@ def _explain_with_lime(x0: np.ndarray, spec: FeatureSpec, n_samples: int = 400) 
 def _explain_with_shap(x0: np.ndarray, spec: FeatureSpec, n_samples: int = 160) -> list[dict[str, Any]]:
     background = _generate_neighbors(x0, n_samples=n_samples, seed=7)
     y = np.array([score_from_features(row, spec) for row in background], dtype=np.float64)
+
+    if settings.rag_light_xai:
+        coefs = _local_linear_importances(x0, background, y)
+        means = background.mean(axis=0)
+        approx = coefs * (x0 - means)
+        order = np.argsort(np.abs(approx))[::-1][:10]
+        return [
+            {
+                "feature": spec.names[i],
+                "shap_value": round(float(approx[i]), 4),
+                "direction": "increases_score" if approx[i] > 0 else "decreases_score",
+            }
+            for i in order
+        ]
 
     # Prefer a stable linear surrogate + exact linear SHAP attributions.
     try:

@@ -42,6 +42,9 @@ class Settings(BaseSettings):
 
     embedding_model: str = "BAAI/bge-large-en-v1.5"
     embedding_dim: int = 1024
+    embedding_backend: str = Field(default="fastembed", alias="EMBEDDING_BACKEND")
+    rag_light_xai: bool = Field(default=False, alias="RAG_LIGHT_XAI")
+    retrieval_max_candidates: int = Field(default=600, alias="RETRIEVAL_MAX_CANDIDATES")
 
     # IPFS / Pinata
     pinata_api_key: str = ""
