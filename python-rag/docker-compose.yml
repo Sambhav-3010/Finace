@@ -14,6 +14,8 @@ services:
       DATA_DIR: /app/data
       EMBEDDING_BACKEND: fastembed
       RAG_LIGHT_XAI: "1"
+      RETRIEVAL_MAX_CANDIDATES: "300"
+      WARM_EMBEDDER: "1"
     volumes:
       - rag_data:/app/data
 

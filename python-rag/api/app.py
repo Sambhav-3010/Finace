@@ -7,7 +7,8 @@ Run:
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from pathlib import Path
+import asyncio
+import os
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -38,9 +39,18 @@ from api.services import RAGApiService
 service = RAGApiService()
 
 
+def _warmup_models() -> None:
+    logger.info("Warming embedder (first load can take ~30s on t2.micro)...")
+    service.retriever.embedder.embed_query("RBI KYC compliance warmup")
+    logger.info("Embedder ready")
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     logger.info("Starting python-rag FastAPI wrapper")
+    if os.getenv("WARM_EMBEDDER", "1") == "1":
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, _warmup_models)
     yield
     logger.info("Stopping python-rag FastAPI wrapper")
 
