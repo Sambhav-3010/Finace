@@ -2,15 +2,21 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useAppStore } from "@/store/appStore";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchReports } from "@/store/slices/reportsSlice";
 
 type StatusFilter = "" | "pending" | "verified" | "rejected";
 
 export default function EvaluatorDashboard() {
-  const { reports, isLoading, fetchReports, user } = useAppStore();
+  const dispatch = useAppDispatch();
+  const reports = useAppSelector((s) => s.reports.reports);
+  const isLoading = useAppSelector((s) => s.reports.isLoading);
+  const user = useAppSelector((s) => s.auth.user);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("");
 
-  useEffect(() => { fetchReports(); }, [fetchReports]);
+  useEffect(() => {
+    dispatch(fetchReports());
+  }, [dispatch]);
 
   const filteredReports = statusFilter ? reports.filter((r) => r.status === statusFilter) : reports;
   const tabs: { label: string; value: StatusFilter }[] = [

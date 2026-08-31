@@ -50,7 +50,12 @@ async function toChatResponse(result) {
     };
   });
 
-  const answer = analysis.explanation || "No detailed explanation provided by AI.";
+  const answer = analysis.explanation
+    || analysis.summary
+    || (Array.isArray(analysis.reasoning_steps) && analysis.reasoning_steps.length
+      ? analysis.reasoning_steps.join("\n")
+      : "")
+    || "No detailed explanation provided by AI.";
 
   return {
     ok: true,
@@ -61,6 +66,8 @@ async function toChatResponse(result) {
     recommendations: analysis.recommendations || [],
     complianceScore: analysis.compliance_score || 0,
     reasoningSteps: analysis.reasoning_steps || [],
+    xai: result?.xai || {},
+    analysis,
     raw: analysis
   };
 }
@@ -71,7 +78,13 @@ export async function askGeneralQuery(req, res) {
     const response = await toChatResponse(result);
     res.json(response);
   } catch (error) {
-    res.status(500).json({ ok: false, error: error.message });
+    const status = error.statusCode && error.statusCode >= 400 && error.statusCode < 600 ? error.statusCode : 500;
+    res.status(status).json({
+      ok: false,
+      error: error.message || "RAG query failed",
+      code: error.code,
+      details: error.details,
+    });
   }
 }
 
@@ -93,6 +106,12 @@ export async function searchRegulations(req, res) {
       data: result.results || [],
     });
   } catch (error) {
-    res.status(500).json({ ok: false, error: error.message });
+    const status = error.statusCode && error.statusCode >= 400 && error.statusCode < 600 ? error.statusCode : 500;
+    res.status(status).json({
+      ok: false,
+      error: error.message || "Regulation search failed",
+      code: error.code,
+      details: error.details,
+    });
   }
 }

@@ -21,6 +21,10 @@ from api.schemas import (
     AnalyzeResponse,
     ReportRequest,
     ReportResponse,
+    ReportSignRequest,
+    ReportSignResponse,
+    ReportHashRequest,
+    ReportHashResponse,
     IpfsRequest,
     IpfsResponse,
     ProofRequest,
@@ -117,6 +121,41 @@ async def generate_report(payload: ReportRequest) -> ReportResponse:
     except Exception as exc:
         logger.exception("Report generation failed")
         raise HTTPException(status_code=500, detail="Report generation failed") from exc
+
+
+@app.post("/report/sign", response_model=ReportSignResponse)
+async def sign_report(payload: ReportSignRequest) -> ReportSignResponse:
+    try:
+        result = service.sign_report(
+            pdf_path=payload.pdf_path,
+            report_id=payload.report_id,
+            signer_name=payload.signer_name,
+            signer_role=payload.signer_role,
+            remarks=payload.remarks,
+        )
+        return ReportSignResponse(
+            ok=True,
+            signed_pdf_path=result["signed_pdf_path"],
+            document_hash=result["document_hash"],
+            pdf_signature=result.get("pdf_signature", {}),
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Report signing failed")
+        raise HTTPException(status_code=500, detail="Report signing failed") from exc
+
+
+@app.post("/report/hash", response_model=ReportHashResponse)
+async def hash_report_file(payload: ReportHashRequest) -> ReportHashResponse:
+    try:
+        result = service.hash_file(payload.file_path)
+        return ReportHashResponse(**result)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Report hash failed")
+        raise HTTPException(status_code=500, detail="Report hash failed") from exc
 
 
 # ──────────────────────────────────────────────

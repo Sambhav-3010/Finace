@@ -1,16 +1,19 @@
 "use client";
 
 import { useEffect } from "react";
-import { useAppStore } from "@/store/appStore";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchReports } from "@/store/slices/reportsSlice";
 import { Copy, ExternalLink, ShieldCheck, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function AuditPage() {
-  const { auditLogs, isLoading, fetchReports } = useAppStore();
+  const dispatch = useAppDispatch();
+  const auditLogs = useAppSelector((s) => s.reports.auditLogs);
+  const isLoading = useAppSelector((s) => s.reports.isLoading);
 
   useEffect(() => {
-    fetchReports();
-  }, [fetchReports]);
+    dispatch(fetchReports());
+  }, [dispatch]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);

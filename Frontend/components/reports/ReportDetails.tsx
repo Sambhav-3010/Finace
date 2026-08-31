@@ -1,10 +1,10 @@
-import { Info, ShieldAlert, CheckCircle2, FileText, ExternalLink } from "lucide-react";
+import { Info, ShieldAlert, CheckCircle2, FileText, ExternalLink, ListOrdered } from "lucide-react";
 import { motion } from "framer-motion";
+import { ExplainabilityPanel } from "@/components/reports/ExplainabilityPanel";
 
 export function ReportDetails({ report }: { report: any }) {
   return (
     <>
-      {/* Row 2: Executive Summary */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -17,15 +17,41 @@ export function ReportDetails({ report }: { report: any }) {
           </div>
           <h3 className="text-xs font-bold uppercase tracking-wider text-white/40">Executive Summary</h3>
         </div>
-        <div 
+        <div
           className="text-white/80 leading-relaxed text-base prose-custom"
-          dangerouslySetInnerHTML={{ __html: report.explanation }} 
+          dangerouslySetInnerHTML={{ __html: report.explanation }}
         />
       </motion.div>
 
-      {/* Row 3: Risk Flags + Recommendations side by side */}
+      <ExplainabilityPanel xai={report.xai} />
+
+      {!!report.reasoning_steps?.length && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="glass rounded-[2rem] p-6 border-white/10"
+        >
+          <div className="flex items-center gap-2 mb-5">
+            <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <ListOrdered className="w-4 h-4 text-amber-300" />
+            </div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-white/40">Decision Path</h3>
+          </div>
+          <ol className="space-y-3">
+            {report.reasoning_steps.map((step: string, i: number) => (
+              <li key={`${step}-${i}`} className="flex gap-3 text-sm text-white/70 leading-6">
+                <span className="shrink-0 w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[11px] text-accent">
+                  {i + 1}
+                </span>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ol>
+        </motion.div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Risk Flags */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -51,7 +77,6 @@ export function ReportDetails({ report }: { report: any }) {
           </ul>
         </motion.div>
 
-        {/* Recommendations */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -75,7 +100,6 @@ export function ReportDetails({ report }: { report: any }) {
         </motion.div>
       </div>
 
-      {/* Row 4: Legal Citations — full width */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -91,20 +115,15 @@ export function ReportDetails({ report }: { report: any }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
           {(report.applicable_clauses || []).map((clause: any, i: number) => {
             const backendBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1").replace(/\/api\/v1\/?$/, "");
-            
             const source = clause.source || "";
-            // A source is considered a document link if it's not a generic placeholder
-            // and it either ends with .pdf OR it looks like a slug (has hyphens/underscores and no spaces)
             const isGeneric = !source || source === "Regulation" || source === "N/A" || source.toLowerCase().includes("guidelines") || source.toLowerCase().includes("circular");
             const looksLikeSlug = !source.includes(" ") && (source.includes("-") || source.includes("_"));
             const isDoc = !isGeneric && (source.endsWith(".pdf") || looksLikeSlug);
-            
-            // The backend now handles recursive search and extension matching, so we just send the source name
             const docUrl = isDoc ? `${backendBase}/docs/${encodeURIComponent(source)}` : null;
-            
+
             return (
-              <div 
-                key={i} 
+              <div
+                key={i}
                 onClick={() => docUrl && window.open(docUrl, "_blank")}
                 title={docUrl ? `View ${source}` : ""}
                 className={`group relative border-l-2 border-accent/20 pl-5 py-3 transition-all duration-300 hover:border-accent hover:bg-white/[0.03] rounded-r-2xl ${docUrl ? "cursor-pointer" : ""}`}
@@ -120,11 +139,11 @@ export function ReportDetails({ report }: { report: any }) {
                     </div>
                   )}
                 </div>
-                
+
                 <h4 className="text-white font-semibold text-sm mb-2 group-hover:text-accent transition-colors">
                   {clause.title || "Compliance Clause"}
                 </h4>
-                
+
                 <div className="relative overflow-hidden transition-all duration-500 ease-in-out max-h-16 group-hover:max-h-[500px]">
                   <p className="text-xs text-white/45 leading-relaxed italic group-hover:text-white/70 transition-colors">
                     &quot;{clause.text}&quot;

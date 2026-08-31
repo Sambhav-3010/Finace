@@ -1,5 +1,6 @@
 import { evaluateResponse } from "../services/evaluatorService.js";
 import { Report } from "../models/Report.js";
+import { generateAndSignReport } from "../services/reportPdfService.js";
 
 // Automated pre-evaluation
 export async function evaluateComplianceResponse(req, res) {
@@ -61,7 +62,7 @@ export async function submitReview(req, res) {
       return res.status(400).json({ ok: false, error: "Invalid status" });
     }
 
-    const report = await Report.findOneAndUpdate(
+    let report = await Report.findOneAndUpdate(
       { report_id: req.params.id },
       {
         status,
@@ -76,6 +77,32 @@ export async function submitReview(req, res) {
     );
 
     if (!report) return res.status(404).json({ ok: false, error: "Report not found" });
+
+    if (status === "verified") {
+      try {
+        const signer = {
+          name: req.user?.name || "Authorized Evaluator",
+          role: "Compliance Evaluator",
+          remarks: finalRemarks,
+        };
+        const signed = await generateAndSignReport(report, signer);
+        await Report.updateOne(
+          { report_id: report.report_id },
+          {
+            pdf_path: signed.pdfPath,
+            signed_pdf_path: signed.signedPdfPath,
+            document_hash: signed.documentHash,
+            pdf_signature: signed.pdfSignature,
+            is_digitally_signed: true,
+            proof_status: "signed",
+          }
+        );
+        report = await Report.findOne({ report_id: report.report_id });
+      } catch (signErr) {
+        console.warn("PDF signing deferred to proof step:", signErr.message);
+      }
+    }
+
     res.json({ ok: true, report });
   } catch (error) {
     res.status(500).json({ ok: false, error: error.message });

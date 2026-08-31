@@ -15,6 +15,8 @@ from config import settings
 from db.mongo import chunks, documents, get_client
 from rag.rag_pipeline import RAGPipeline
 from reports.report_generator import generate_report_pdf
+from reports.pdf_signer import sign_report_pdf
+from reports.pdf_hash import sha256_file
 from storage.ipfs_uploader import upload_file_to_ipfs
 from blockchain.proof_writer import store_proof
 from retrieval.retriever import LocalRetriever
@@ -115,6 +117,26 @@ class RAGApiService:
             "report_id": report_id,
         }
 
+    def sign_report(
+        self,
+        pdf_path: str,
+        report_id: str,
+        signer_name: str = "Authorized Evaluator",
+        signer_role: str = "Compliance Evaluator",
+        remarks: str = "",
+    ) -> dict:
+        result = sign_report_pdf(
+            pdf_path,
+            report_id=report_id,
+            signer_name=signer_name,
+            signer_role=signer_role,
+            remarks=remarks,
+        )
+        return {"ok": True, **result}
+
+    def hash_file(self, file_path: str) -> dict:
+        return {"document_hash": sha256_file(file_path)}
+
     # ── New: upload to IPFS ──
 
     def upload_to_ipfs(self, file_path: str) -> dict:
@@ -206,8 +228,25 @@ class RAGApiService:
             "pdf_count": docs_summary["pdf_count"],
             "indexed_documents": indexed_documents,
             "indexed_chunks": indexed_chunks,
-            "llm_provider": "groq",
-            "llm_model": settings.xai_model,
+            "llm_provider": settings.llm_provider,
+            "llm_model": (
+                settings.gemini_model
+                if settings.llm_provider in {"gemini", "google"}
+                else settings.nvidia_model
+                if settings.llm_provider == "nvidia"
+                else settings.groq_model
+                if settings.llm_provider == "groq"
+                else settings.xai_model
+            ),
             "llm_enabled": os.getenv("RAG_ENABLE_LLM", "1") == "1"
-            and bool(settings.groq_api_key or settings.xai_api_key or os.getenv("GROK_API_KEY") or os.getenv("GROQ_API_KEY")),
+            and bool(
+                settings.gemini_api_key
+                or settings.nvidia_api_key
+                or settings.groq_api_key
+                or settings.xai_api_key
+                or os.getenv("GEMINI_API_KEY")
+                or os.getenv("NVIDIA_API_KEY")
+                or os.getenv("GROQ_API_KEY")
+                or os.getenv("GROK_API_KEY")
+            ),
         }

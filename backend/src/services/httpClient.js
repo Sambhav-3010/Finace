@@ -1,5 +1,19 @@
 import { HttpError } from "../utils/httpError.js";
 
+function formatUpstreamError(payload, status) {
+  if (Array.isArray(payload?.detail)) {
+    const parts = payload.detail.map((item) => {
+      const field = Array.isArray(item?.loc) ? item.loc.filter((p) => p !== "body").join(".") : "";
+      const msg = item?.msg || item?.message || "validation failed";
+      return field ? `${field}: ${msg}` : msg;
+    });
+    if (parts.length) return parts.join("; ");
+  }
+  if (typeof payload?.detail === "string") return payload.detail;
+  if (payload?.message) return payload.message;
+  return `Upstream request failed with status ${status}`;
+}
+
 export async function postJson(url, body, { timeoutMs = 30000 } = {}) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -21,7 +35,7 @@ export async function postJson(url, body, { timeoutMs = 30000 } = {}) {
       throw new HttpError(
         response.status >= 500 ? 502 : response.status,
         "upstream_error",
-        payload?.message || `Upstream request failed with status ${response.status}`,
+        formatUpstreamError(payload, response.status),
         payload
       );
     }

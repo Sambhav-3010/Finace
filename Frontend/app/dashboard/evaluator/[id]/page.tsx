@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { reportsApi } from "@/services/api";
 import { ShieldAlert, RefreshCw, Fingerprint, ChevronLeft, Loader2, Lock } from "lucide-react";
 import { motion } from "framer-motion";
-import { useAppStore } from "@/store/appStore";
+import { useAppSelector } from "@/store/hooks";
 import { ethers } from "ethers";
 import { COMPLIANCE_ABI, CONTRACT_ADDRESS } from "@/constants/abi";
 
@@ -21,7 +21,7 @@ import { ProofGenerationModal } from "@/components/reports/ProofGenerationModal"
 export default function ReportReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { id } = use(params);
-  const { user } = useAppStore();
+  const user = useAppSelector((s) => s.auth.user);
   const [report, setReport] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [remarks, setRemarks] = useState("");
@@ -155,6 +155,23 @@ export default function ReportReviewPage({ params }: { params: Promise<{ id: str
   );
 
   const isFinalized = report.ipfs_cid && report.tx_hash;
+  const canDownloadSigned =
+    report.is_digitally_signed || report.status === "verified" || isFinalized;
+
+  const handleDownloadSignedPdf = async () => {
+    try {
+      const blob = await reportsApi.downloadPdf(id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${id}.signed.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert("Signed PDF not available yet. Verify the report first.");
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-7xl pb-20">
@@ -172,15 +189,24 @@ export default function ReportReviewPage({ params }: { params: Promise<{ id: str
             </h2>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          {canDownloadSigned && (
+            <button
+              onClick={handleDownloadSignedPdf}
+              className="flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-5 py-2 text-sm font-bold text-accent hover:bg-accent/20 transition"
+            >
+              <Lock className="w-4 h-4" />
+              {report.is_digitally_signed ? "Download Signed PDF" : "Download PDF"}
+            </button>
+          )}
           {isFinalized ? (
-            <a 
+            <a
               href={`https://gateway.pinata.cloud/ipfs/${report.ipfs_cid}`}
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-5 py-2 text-sm font-bold text-emerald-400 hover:bg-emerald-500/20 transition"
             >
-              <Lock className="w-4 h-4" /> View PDF Report
+              <Fingerprint className="w-4 h-4" /> View on IPFS
             </a>
           ) : (
             <>

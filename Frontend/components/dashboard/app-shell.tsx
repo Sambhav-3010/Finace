@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAppStore } from "@/store/appStore";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchReports } from "@/store/slices/reportsSlice";
 import { ComplianceQueryPanel } from "@/components/dashboard/compliance-query-panel";
 import { RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis } from "recharts";
 import { Activity, ShieldAlert, FileText, CheckCircle2, Loader2, ArrowRight } from "lucide-react";
@@ -9,13 +10,17 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 
 export function OverviewPanel() {
-  const { reports, auditLogs, isLoading, error, fetchReports } = useAppStore();
+  const dispatch = useAppDispatch();
+  const reports = useAppSelector((s) => s.reports.reports);
+  const auditLogs = useAppSelector((s) => s.reports.auditLogs);
+  const isLoading = useAppSelector((s) => s.reports.isLoading);
+  const error = useAppSelector((s) => s.reports.error);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    fetchReports();
-  }, [fetchReports]);
+    dispatch(fetchReports());
+  }, [dispatch]);
 
   // Derived metrics
   const totalReports = reports.length;
@@ -52,7 +57,7 @@ export function OverviewPanel() {
       <div className="glass rounded-[1.8rem] p-8 border-rose-500/20 bg-rose-500/5 text-rose-200">
         <h3 className="text-lg font-semibold mb-2">API Connection Error</h3>
         <p className="text-sm opacity-80 mb-4">{error}</p>
-        <button onClick={() => fetchReports()} className="px-4 py-2 bg-rose-500/20 rounded-lg text-sm hover:bg-rose-500/30 transition">
+        <button onClick={() => dispatch(fetchReports())} className="px-4 py-2 bg-rose-500/20 rounded-lg text-sm hover:bg-rose-500/30 transition">
           Retry Connection
         </button>
       </div>
