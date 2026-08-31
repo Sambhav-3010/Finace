@@ -84,7 +84,7 @@ export function CapabilitiesSection() {
               key={item.title}
               variants={fadeUp}
               custom={i}
-              className="group glass rounded-[1.8rem] p-6 transition-all hover:border-accent/30 hover:bg-white/[0.06] hover:shadow-[0_0_40px_rgba(126,240,207,0.08)]"
+              className="group glass rounded-[1.8rem] p-6 transition-all hover:border-accent/30 hover:bg-white/[0.06] hover:shadow-[0_0_40px_rgba(74,222,128,0.08)]"
             >
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/10 border border-accent/20 mb-5 transition-colors group-hover:bg-accent/20">
                 <item.icon className="w-5 h-5 text-accent" />

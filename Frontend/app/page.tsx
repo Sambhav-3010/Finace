@@ -9,7 +9,7 @@ import { LandingBackground } from "@/components/marketing/LandingBackground";
 
 export default function HomePage() {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#090d0d]">
+    <main className="relative min-h-screen overflow-x-hidden bg-[#090d0d]">
       <LandingBackground />
       <div className="relative z-10">
         <Navbar />

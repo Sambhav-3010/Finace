@@ -133,7 +133,7 @@ export function ExplainabilityPanel({
                 tickLine={false}
               />
               <Tooltip
-                cursor={{ fill: "rgba(126, 240, 207, 0.06)" }}
+                cursor={{ fill: "rgba(74, 222, 128, 0.06)" }}
                 content={<XaiTooltip />}
                 wrapperStyle={{ outline: "none", zIndex: 50 }}
               />
@@ -182,7 +182,7 @@ export function ExplainabilityPanel({
             <XAxis type="number" stroke="rgba(255,255,255,0.2)" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} />
             <YAxis type="category" dataKey="name" width={130} tick={{ fill: "rgba(255,255,255,0.55)", fontSize: 11 }} />
             <Tooltip
-              cursor={{ fill: "rgba(126, 240, 207, 0.06)" }}
+              cursor={{ fill: "rgba(74, 222, 128, 0.06)" }}
               content={<XaiTooltip />}
               wrapperStyle={{ outline: "none", zIndex: 50 }}
             />

@@ -18,6 +18,7 @@ import {
 } from "recharts";
 import { Activity, BadgeCheck, BrainCircuit, Sparkles } from "lucide-react";
 import type { TrustAnalytics } from "@/lib/trust/types";
+import { ACCENT_HEX } from "@/lib/theme/colors";
 import { ChartTip } from "./ChartTip";
 
 export function TrustChartGrid({ stats }: { stats: TrustAnalytics }) {
@@ -28,15 +29,15 @@ export function TrustChartGrid({ stats }: { stats: TrustAnalytics }) {
           <ComposedChart data={stats.scoreSeries}>
             <defs>
               <linearGradient id="scoreFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#7ef0cf" stopOpacity={0.35} />
-                <stop offset="100%" stopColor="#7ef0cf" stopOpacity={0} />
+                <stop offset="0%" stopColor={ACCENT_HEX} stopOpacity={0.35} />
+                <stop offset="100%" stopColor={ACCENT_HEX} stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid stroke="rgba(255,255,255,0.06)" vertical={false} />
             <XAxis dataKey="turn" tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} axisLine={false} tickLine={false} />
             <YAxis domain={[0, 100]} tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} axisLine={false} tickLine={false} />
             <Tooltip content={<ChartTip />} />
-            <Area type="monotone" dataKey="score" name="Score" stroke="#7ef0cf" fill="url(#scoreFill)" strokeWidth={2} />
+            <Area type="monotone" dataKey="score" name="Score" stroke={ACCENT_HEX} fill="url(#scoreFill)" strokeWidth={2} />
             <Line type="monotone" dataKey="surrogate" name="Surrogate" stroke="#94a3b8" strokeDasharray="4 4" strokeWidth={1.5} dot={false} />
           </ComposedChart>
         </ChartCard>
@@ -76,13 +77,13 @@ export function TrustChartGrid({ stats }: { stats: TrustAnalytics }) {
             <XAxis dataKey="name" tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 11 }} axisLine={false} tickLine={false} />
             <YAxis domain={[0, 100]} tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 11 }} axisLine={false} tickLine={false} />
             <Tooltip content={<ChartTip />} />
-            <Bar dataKey="score" name="Factor" fill="#7ef0cf" radius={[6, 6, 0, 0]} barSize={28} />
+            <Bar dataKey="score" name="Factor" fill={ACCENT_HEX} radius={[6, 6, 0, 0]} barSize={28} />
           </BarChart>
         </ChartCard>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <section className="glass rounded-2xl p-4">
           <h3 className="mb-1 text-sm font-medium text-white">Control coverage</h3>
           <p className="mb-3 text-[11px] text-white/40">Which compliance controls the latest turn detected</p>
           <div className="h-44">
@@ -101,7 +102,7 @@ export function TrustChartGrid({ stats }: { stats: TrustAnalytics }) {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <section className="glass rounded-2xl p-4">
           <h3 className="mb-1 text-sm font-medium text-white">Retrieval strength</h3>
           <p className="mb-3 text-[11px] text-white/40">How strongly regulations backed the latest decision</p>
           <div className="h-44">
@@ -111,7 +112,7 @@ export function TrustChartGrid({ stats }: { stats: TrustAnalytics }) {
                 <XAxis dataKey="name" tick={{ fill: "rgba(255,255,255,0.5)", fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis domain={[0, 100]} tick={{ fill: "rgba(255,255,255,0.45)", fontSize: 10 }} axisLine={false} tickLine={false} />
                 <Tooltip content={<ChartTip />} />
-                <Line type="monotone" dataKey="value" name="Strength %" stroke="#7ef0cf" strokeWidth={2} dot={{ r: 4, fill: "#7ef0cf" }} />
+                <Line type="monotone" dataKey="value" name="Strength %" stroke={ACCENT_HEX} strokeWidth={2} dot={{ r: 4, fill: ACCENT_HEX }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -133,7 +134,8 @@ function ChartCard({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+    <section className="glass rounded-2xl p-4">
+      <div className="relative z-[1]">
       <div className="mb-3 flex items-center gap-2">
         <Icon className="h-4 w-4 text-accent" />
         <div>
@@ -143,6 +145,7 @@ function ChartCard({
       </div>
       <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer>
+      </div>
       </div>
     </section>
   );

@@ -62,7 +62,7 @@ function StepCard({
       onMouseEnter={onSelect}
       className={`w-full rounded-2xl border px-3 py-2.5 text-left transition lg:px-3.5 lg:py-3 ${
         isActive
-          ? "border-accent/45 bg-accent/10 shadow-[0_0_24px_rgba(126,240,207,0.12)]"
+          ? "border-accent/45 bg-accent/10 shadow-[0_0_24px_rgba(74,222,128,0.12)]"
           : "border-white/10 bg-[#0c1412]/85 backdrop-blur-sm hover:border-accent/25"
       }`}
     >
@@ -144,8 +144,8 @@ export function WorkflowSection() {
                       onMouseEnter={() => setActive(i)}
                       animate={
                         isActive
-                          ? { scale: 1.08, boxShadow: "0 0 20px rgba(126,240,207,0.45)" }
-                          : { scale: 1, boxShadow: "0 0 0 rgba(126,240,207,0)" }
+                          ? { scale: 1.08, boxShadow: "0 0 20px rgba(74,222,128,0.45)" }
+                          : { scale: 1, boxShadow: "0 0 0 rgba(74,222,128,0)" }
                       }
                       transition={{ type: "spring", stiffness: 400, damping: 24 }}
                       className={`flex h-9 w-9 items-center justify-center rounded-full border ${

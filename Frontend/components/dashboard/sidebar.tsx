@@ -85,7 +85,7 @@ export function DashboardSidebar({
 
   if (!open) {
     return (
-      <aside className="flex w-[56px] shrink-0 flex-col items-center gap-2 border-r border-white/10 bg-[#0a1211]/90 backdrop-blur-xl py-3">
+      <aside className="flex w-[56px] shrink-0 flex-col items-center gap-2 border-r border-white/[0.05] bg-[#080f0e]/80 backdrop-blur-xl py-3">
         <button
           type="button"
           onClick={onToggle}
@@ -112,7 +112,7 @@ export function DashboardSidebar({
   }
 
   return (
-    <aside className="flex w-[268px] shrink-0 flex-col border-r border-white/10 bg-[#0a1211]/85 backdrop-blur-xl">
+    <aside className="flex w-[268px] shrink-0 flex-col border-r border-white/[0.05] bg-[#080f0e]/75 backdrop-blur-xl">
       <div className="flex items-center justify-between gap-2 px-3 pt-4 pb-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-accent/25 bg-accent/10">
@@ -168,12 +168,12 @@ export function DashboardSidebar({
         })}
       </nav>
 
-      <div className="mt-4 flex min-h-0 flex-1 flex-col border-t border-white/8 pt-3">
+      <div className="mt-4 flex min-h-0 flex-1 flex-col border-t border-white/[0.05] pt-3">
         <p className="px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
           Recents
         </p>
         <div className="px-3 pb-2">
-          <div className="flex items-center gap-2 rounded-xl border border-white/8 bg-white/[0.03] px-2.5 py-1.5">
+          <div className="flex items-center gap-2 rounded-xl panel-inset px-2.5 py-1.5">
             <Search className="h-3.5 w-3.5 text-accent/50" />
             <input
               value={query}
@@ -217,8 +217,8 @@ export function DashboardSidebar({
       </div>
 
       {user && (
-        <div className="border-t border-white/8 p-2">
-          <div className="flex items-center gap-2.5 rounded-2xl border border-white/8 bg-white/[0.03] px-2.5 py-2">
+        <div className="border-t border-white/[0.05] p-2">
+          <div className="panel-inset flex items-center gap-2.5 px-2.5 py-2">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-accent/20 bg-accent/10 text-accent">
               <UserIcon className="h-3.5 w-3.5" />
             </div>

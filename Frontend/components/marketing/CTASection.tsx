@@ -13,7 +13,7 @@ export function CTASection() {
     user?.role === "evaluator" ? "/dashboard/evaluator" : "/dashboard/workflow";
 
   return (
-    <section className="py-24">
+    <section className="pb-8 pt-24">
       <div className="shell">
         <motion.div
           initial={{ opacity: 0, scale: 0.97 }}
@@ -46,7 +46,7 @@ export function CTASection() {
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Link
                 href={isAuthenticated ? dashboardHref : "/login"}
-                className="group inline-flex items-center gap-2 rounded-full bg-accent px-7 py-4 text-sm font-semibold text-ink transition-all hover:bg-white hover:shadow-[0_0_30px_rgba(126,240,207,0.4)]"
+                className="group inline-flex items-center gap-2 rounded-full bg-accent px-7 py-4 text-sm font-semibold text-ink transition-all hover:bg-white hover:shadow-[0_0_30px_rgba(74,222,128,0.4)]"
               >
                 {isAuthenticated ? "Open Dashboard" : "Launch Dashboard"}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />

@@ -1,3 +1,4 @@
+import { ACCENT_HEX } from "@/lib/theme/colors";
 import { CONTROL_KEYS, RISK_COLORS, type TrustAnalytics, type TrustChatMessage } from "./types";
 
 export function trustBand(score: number) {
@@ -53,7 +54,7 @@ export function buildTrustAnalytics(messages: TrustChatMessage[]): TrustAnalytic
     name: key.replace(" present", "").replace(" controls", "").replace(" process", ""),
     full: key,
     value: Number(featureValues[key] ?? 0) >= 0.5 ? 1 : 0,
-    fill: Number(featureValues[key] ?? 0) >= 0.5 ? "#7ef0cf" : "#475569",
+    fill: Number(featureValues[key] ?? 0) >= 0.5 ? ACCENT_HEX : "#475569",
   }));
 
   const retrievalBars = [

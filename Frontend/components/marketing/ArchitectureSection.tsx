@@ -110,7 +110,7 @@ export function ArchitectureSection() {
               const Icon = item.icon;
               return (
                 <div key={item.label} className="relative flex flex-col items-center text-center">
-                  <div className="z-10 mb-2 flex h-9 w-9 items-center justify-center rounded-full border border-accent/35 bg-[#0a1210] text-accent shadow-[0_0_16px_rgba(126,240,207,0.12)]">
+                  <div className="z-10 mb-2 flex h-9 w-9 items-center justify-center rounded-full border border-accent/35 bg-[#0a1210] text-accent shadow-[0_0_16px_rgba(74,222,128,0.12)]">
                     <Icon className="h-3.5 w-3.5" strokeWidth={2} />
                   </div>
                   <p className="text-[13px] font-semibold text-white">{item.label}</p>

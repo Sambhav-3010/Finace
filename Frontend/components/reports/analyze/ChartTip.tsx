@@ -1,3 +1,5 @@
+import { ACCENT_HEX } from "@/lib/theme/colors";
+
 export function ChartTip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
@@ -5,7 +7,7 @@ export function ChartTip({ active, payload, label }: any) {
       {label != null && <p className="text-[11px] text-white/45 mb-1">{label}</p>}
       {payload.map((p: any, i: number) => (
         <p key={i} className="text-[12px] font-medium text-white/90">
-          <span style={{ color: p.color || "#7ef0cf" }}>{p.name || "value"}</span>
+          <span style={{ color: p.color || ACCENT_HEX }}>{p.name || "value"}</span>
           {": "}
           {typeof p.value === "number"
             ? Number.isInteger(p.value)

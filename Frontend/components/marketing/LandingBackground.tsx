@@ -11,7 +11,7 @@ export function LandingBackground() {
         className="absolute inset-[-20%] opacity-[0.12]"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(126,240,207,0.35) 1px, transparent 1px), linear-gradient(90deg, rgba(126,240,207,0.35) 1px, transparent 1px)",
+            "linear-gradient(rgba(74,222,128,0.35) 1px, transparent 1px), linear-gradient(90deg, rgba(74,222,128,0.35) 1px, transparent 1px)",
           backgroundSize: "48px 48px",
           maskImage: "radial-gradient(ellipse at center, black 20%, transparent 75%)",
         }}
@@ -67,7 +67,7 @@ export function LandingBackground() {
             left: p.left,
             width: p.size,
             height: p.size,
-            boxShadow: "0 0 12px rgba(126,240,207,0.55)",
+            boxShadow: "0 0 12px rgba(74,222,128,0.55)",
           }}
           animate={{ y: [0, -18, 0], opacity: [0.25, 0.9, 0.25] }}
           transition={{

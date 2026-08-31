@@ -10,8 +10,9 @@ export function TrustSummaryHeader({ stats }: { stats: TrustAnalytics }) {
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-sm"
+      className="glass rounded-2xl p-5"
     >
+      <div className="relative z-[1]">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
@@ -39,7 +40,7 @@ export function TrustSummaryHeader({ stats }: { stats: TrustAnalytics }) {
           { icon: Scale, label: "Score Δ", value: `${stats.delta >= 0 ? "+" : ""}${stats.delta}` },
           { icon: ShieldCheck, label: "Latest risk", value: stats.latestRisk },
         ].map((card) => (
-          <div key={card.label} className="rounded-xl border border-white/8 bg-black/20 px-3 py-3">
+          <div key={card.label} className="panel-inset px-3 py-3">
             <div className="flex items-center gap-1.5 text-white/40">
               <card.icon className="h-3.5 w-3.5" />
               <span className="text-[10px] uppercase tracking-wider">{card.label}</span>
@@ -47,6 +48,7 @@ export function TrustSummaryHeader({ stats }: { stats: TrustAnalytics }) {
             <p className="mt-1 text-xl font-medium text-white tabular-nums">{card.value}</p>
           </div>
         ))}
+      </div>
       </div>
     </motion.div>
   );

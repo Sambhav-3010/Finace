@@ -61,7 +61,7 @@ export function Navbar() {
               </div>
               <Link
                 href={dashboardHref}
-                className="inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-white hover:shadow-[0_0_20px_rgba(126,240,207,0.3)]"
+                className="inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-white hover:shadow-[0_0_20px_rgba(74,222,128,0.3)]"
               >
                 <LayoutDashboard className="h-3.5 w-3.5" />
                 Dashboard
@@ -70,7 +70,7 @@ export function Navbar() {
           ) : (
             <Link
               href="/login"
-              className="inline-flex items-center gap-1.5 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-white hover:shadow-[0_0_20px_rgba(126,240,207,0.3)]"
+              className="inline-flex items-center gap-1.5 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-white hover:shadow-[0_0_20px_rgba(74,222,128,0.3)]"
             >
               Sign In
               <ArrowRight className="h-3.5 w-3.5" />
