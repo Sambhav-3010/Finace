@@ -1,9 +1,32 @@
 .venv
+venv
 __pycache__
-.git
-*.md
+**/__pycache__
 *.pyc
+*.pyo
+.git
+.gitignore
+*.md
+!RENDER.md
+
+.env
+.env.*
+!.env.example
+
+data/
+fastembed_cache/
+hf_cache/
+
+# Local PDF corpus — ingest on host, not inside API container
+RBI DOCS/
+**/*.pdf
+
 uv.exe
 uvw.exe
 uvx.exe
-data/
+
+.pytest_cache
+.mypy_cache
+.ruff_cache
+Dockerfile*
+docker-compose*.yml
