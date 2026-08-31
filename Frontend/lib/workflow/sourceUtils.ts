@@ -1,5 +1,4 @@
-export function sourceLabel(source: any): string {
-  const rel = source?.relative_path || source?.source_file || "";
+export function sourceLabel(source: any): string {  const rel = source?.relative_path || source?.source_file || "";
   if (rel) return String(rel).split(/[/\\]/).pop() || rel;
   return source?.document_id || source?.section || "Regulation";
 }

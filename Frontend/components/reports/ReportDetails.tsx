@@ -1,6 +1,7 @@
 import { Info, ShieldAlert, CheckCircle2, FileText, ExternalLink, ListOrdered } from "lucide-react";
 import { motion } from "framer-motion";
 import { ExplainabilityPanel } from "@/components/reports/ExplainabilityPanel";
+import { isPdfSourcePath, resolvePublicDocUrl } from "@/lib/docs/publicDocUrl";
 
 export function ReportDetails({ report }: { report: any }) {
   return (
@@ -114,12 +115,10 @@ export function ReportDetails({ report }: { report: any }) {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
           {(report.applicable_clauses || []).map((clause: any, i: number) => {
-            const backendBase = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1").replace(/\/api\/v1\/?$/, "");
             const source = clause.source || "";
             const isGeneric = !source || source === "Regulation" || source === "N/A" || source.toLowerCase().includes("guidelines") || source.toLowerCase().includes("circular");
-            const looksLikeSlug = !source.includes(" ") && (source.includes("-") || source.includes("_"));
-            const isDoc = !isGeneric && (source.endsWith(".pdf") || looksLikeSlug);
-            const docUrl = isDoc ? `${backendBase}/docs/${encodeURIComponent(source)}` : null;
+            const isDoc = !isGeneric && isPdfSourcePath(source);
+            const docUrl = isDoc ? resolvePublicDocUrl(source) : null;
 
             return (
               <div

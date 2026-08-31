@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
 import { ExternalLink, ShieldAlert, User as UserIcon } from "lucide-react";
 import { ExplainabilityPanel } from "@/components/reports/ExplainabilityPanel";
-import { getBackendDocsBase, sourceLabel } from "@/lib/workflow/sourceUtils";
+import { resolvePublicDocUrl, isPdfSourcePath } from "@/lib/docs/publicDocUrl";
+import { sourceLabel } from "@/lib/workflow/sourceUtils";
 import type { WorkflowMessage } from "@/lib/workflow/types";
 
 function formatMessageHtml(content: string) {
@@ -19,8 +20,6 @@ interface Props {
 }
 
 export function WorkflowMessageList({ messages, loading, scrollRef }: Props) {
-  const backendBase = getBackendDocsBase();
-
   return (
     <div
       ref={scrollRef}
@@ -51,7 +50,7 @@ export function WorkflowMessageList({ messages, loading, scrollRef }: Props) {
               />
 
               {m.role === "ai" && m.sources && m.sources.length > 0 && (
-                <SourceList sources={m.sources} backendBase={backendBase} />
+                <SourceList sources={m.sources} />
               )}
 
               {m.data?.risk_flags && m.data.risk_flags.length > 0 && (
@@ -85,18 +84,13 @@ export function WorkflowMessageList({ messages, loading, scrollRef }: Props) {
   );
 }
 
-function SourceList({ sources, backendBase }: { sources: any[]; backendBase: string }) {
+function SourceList({ sources }: { sources: any[] }) {
   return (
     <div className="space-y-1 border-l-2 border-white/10 pl-3">
       <p className="text-[11px] font-medium uppercase tracking-wider text-white/35">Sources</p>
       {sources.map((source, si) => {
-        const relPath = source.relative_path || source.source_file || "";
-        const hasFile =
-          relPath &&
-          (relPath.endsWith(".pdf") || relPath.includes("/") || relPath.includes("\\"));
-        const docUrl = hasFile
-          ? `${backendBase}/docs/${encodeURI(relPath.replace(/\\/g, "/"))}`
-          : null;
+        const relPath = source.relative_path || source.source_file || source.document_id || "";
+        const docUrl = isPdfSourcePath(relPath) ? resolvePublicDocUrl(relPath) : null;
         const fileName = sourceLabel(source);
 
         return docUrl ? (
