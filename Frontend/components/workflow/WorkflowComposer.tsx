@@ -40,7 +40,7 @@ export function WorkflowComposer({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const showGenerate = chatConfig.chatType !== "general_query";
+  const showGenerate = hasMessages && chatConfig.chatType !== "general_query";
   const showShapToggle = chatConfig.chatType === "general_query";
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

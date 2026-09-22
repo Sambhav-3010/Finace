@@ -146,6 +146,12 @@ export function Navbar() {
             Systems Online
           </span>
           <Link
+            href="/how-it-works"
+            className="hidden rounded-full border border-accent/30 bg-accent/10 px-4 py-2.5 text-sm font-semibold text-accent transition hover:bg-accent hover:text-ink sm:inline-flex"
+          >
+            How It Works
+          </Link>
+          <Link
             href="/login"
             className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-white hover:shadow-[0_0_20px_rgba(126,240,207,0.3)]"
           >
@@ -245,11 +251,13 @@ export function CapabilitiesSection() {
 /* ─────────────── How It Works ─────────────── */
 
 const workflowSteps = [
-  { step: "01", title: "Ingest Regulations", desc: "Parse 359+ RBI, FATF, and NPCI documents into structured chunks with metadata." },
-  { step: "02", title: "Embed & Index", desc: "Generate 1024-dim vector embeddings and store in MongoDB for semantic retrieval." },
-  { step: "03", title: "Analyze with RAG", desc: "Submit workflows. AI retrieves relevant clauses and reasons over them with Groq LLM." },
-  { step: "04", title: "Explain & Score", desc: "Get risk levels, clause citations, reasoning steps, and compliance scores in structured JSON." },
-  { step: "05", title: "Anchor & Prove", desc: "Generate PDF reports, upload to IPFS, and write proof hashes to Base Sepolia blockchain." },
+  { step: "01", title: "Start a new chat", desc: "Choose General Query for regulatory Q&A, New Compliance Report for a fresh assessment, or Update Existing Report for remediation." },
+  { step: "02", title: "Choose topics and models", desc: "Select payment categories, then enable SHAP and Semantic ML when you want score drivers and control checks alongside the answer." },
+  { step: "03", title: "Ask the workflow question", desc: "Describe the product, transaction flow, jurisdictions, controls, incidents, or the regulation you need to understand." },
+  { step: "04", title: "Retrieve evidence with RAG", desc: "The engine searches indexed RBI, NPCI, FATF, and related documents, then returns relevant clauses and PDF references." },
+  { step: "05", title: "Calculate and explain the score", desc: "A calibrated baseline is adjusted by rules, Semantic ML penalties or credits, retrieval evidence, and the LLM blend. SHAP explains each contribution." },
+  { step: "06", title: "Review in Analyze", desc: "The Analyze tab turns the conversation into score trajectories, requirements, semantic checks, evidence scope, waterfall drivers, and what-if views." },
+  { step: "07", title: "Generate, review, and prove", desc: "For New or Update Report modes, generate the report, let an evaluator amend and approve it, sign the PDF, upload to IPFS, and anchor the hash on Base Sepolia." },
 ];
 
 export function WorkflowSection() {
@@ -265,18 +273,24 @@ export function WorkflowSection() {
         >
           <motion.span variants={fadeUp} custom={0} className="section-label">System Pipeline</motion.span>
           <motion.h2 variants={fadeUp} custom={1} className="mt-5 text-3xl font-semibold tracking-tight text-white">
-            From regulatory PDF to blockchain proof in 5 steps.
+            From a question to an evaluator-ready proof.
           </motion.h2>
           <motion.p variants={fadeUp} custom={2} className="mt-5 text-sm leading-7 text-white/60">
-            Users see where every answer comes from, what&apos;s risky, and what proof was recorded — no
-            technical logs required.
+            The product moves from conversation setup to cited RAG evidence, score calculation,
+            explainability, evaluator review, and optional Base Sepolia anchoring.
           </motion.p>
           <motion.div variants={fadeUp} custom={3}>
             <Link
-              href="/login"
+              href="/dashboard/workflow?new=1"
               className="mt-8 inline-flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-ink transition hover:bg-white"
             >
-              Try It Now <ArrowRight className="w-4 h-4" />
+              See the complete flow <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link
+              href="/how-it-works"
+              className="mt-8 ml-2 inline-flex items-center gap-2 rounded-full border border-white/12 px-5 py-3 text-sm font-semibold text-white/80 transition hover:border-accent/40 hover:text-white"
+            >
+              Open flow guide <ChevronRight className="w-4 h-4" />
             </Link>
           </motion.div>
         </motion.div>

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { FileText, Loader2, Plus, Save } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown, FileText, Loader2, Plus, Save } from "lucide-react";
 import { reportsApi } from "@/services/api";
 import { htmlToPlainText, plainLinesFromField } from "@/lib/text/htmlToPlain";
 import { useDocCatalog } from "@/hooks/useDocCatalog";
@@ -20,6 +20,8 @@ export function EvaluatorAmendmentPanel({ report, onSaved, disabled }: Props) {
   const { catalog, loading: docsLoading } = useDocCatalog();
   const [score, setScore] = useState(String(report.compliance_score ?? ""));
   const [risk, setRisk] = useState(report.risk_level || "MEDIUM");
+  const [riskOpen, setRiskOpen] = useState(false);
+  const riskMenuRef = useRef<HTMLDivElement>(null);
   const [explanation, setExplanation] = useState(htmlToPlainText(report.explanation || ""));
   const [flags, setFlags] = useState(plainLinesFromField(report.risk_flags));
   const [recs, setRecs] = useState(plainLinesFromField(report.recommendations));
@@ -37,6 +39,16 @@ export function EvaluatorAmendmentPanel({ report, onSaved, disabled }: Props) {
     setFlags(plainLinesFromField(report.risk_flags));
     setRecs(plainLinesFromField(report.recommendations));
   }, [report]);
+
+  useEffect(() => {
+    const closeRiskMenu = (event: MouseEvent) => {
+      if (riskMenuRef.current && !riskMenuRef.current.contains(event.target as Node)) {
+        setRiskOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", closeRiskMenu);
+    return () => document.removeEventListener("mousedown", closeRiskMenu);
+  }, []);
 
   const originalExplanation = htmlToPlainText(report.explanation || "");
   const originalFlags = plainLinesFromField(report.risk_flags);
@@ -112,19 +124,48 @@ export function EvaluatorAmendmentPanel({ report, onSaved, disabled }: Props) {
             className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white"
           />
         </label>
-        <label className="space-y-1.5">
+        <div className="space-y-1.5">
           <span className="text-[10px] uppercase tracking-wider text-white/40">Risk level</span>
-          <select
-            value={risk}
-            onChange={(e) => setRisk(e.target.value)}
-            disabled={disabled || saving}
-            className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white"
-          >
-            <option value="LOW">LOW</option>
-            <option value="MEDIUM">MEDIUM</option>
-            <option value="HIGH">HIGH</option>
-          </select>
-        </label>
+          <div ref={riskMenuRef} className="relative">
+            <button
+              type="button"
+              aria-haspopup="listbox"
+              aria-expanded={riskOpen}
+              disabled={disabled || saving}
+              onClick={() => setRiskOpen((open) => !open)}
+              className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-left text-sm text-white transition hover:border-white/20 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <span className={risk === "HIGH" ? "text-red-300" : risk === "MEDIUM" ? "text-yellow-300" : "text-green-300"}>
+                {risk}
+              </span>
+              <ChevronDown className={`h-4 w-4 text-white/45 transition-transform ${riskOpen ? "rotate-180" : ""}`} />
+            </button>
+            {riskOpen && (
+              <div role="listbox" className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-xl border border-white/15 bg-[#101816] p-1 shadow-2xl">
+                {(["LOW", "MEDIUM", "HIGH"] as const).map((level) => (
+                  <button
+                    key={level}
+                    type="button"
+                    role="option"
+                    aria-selected={risk === level}
+                    onClick={() => {
+                      setRisk(level);
+                      setRiskOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-semibold transition hover:bg-white/10 ${
+                      risk === level ? "bg-white/10" : ""
+                    }`}
+                  >
+                    <span className={level === "HIGH" ? "text-red-300" : level === "MEDIUM" ? "text-yellow-300" : "text-green-300"}>{level}</span>
+                    <span className="text-[10px] font-normal text-white/35">
+                      {level === "HIGH" ? "critical exposure" : level === "MEDIUM" ? "attention required" : "lower exposure"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       <label className="block space-y-1.5">

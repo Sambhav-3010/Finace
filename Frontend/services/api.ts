@@ -93,6 +93,7 @@ export const reportsApi = {
   getAll: (status?: string) =>
     api.get(`/evaluator/reports${status ? `?status=${encodeURIComponent(status)}` : ""}`),
   getById: (id: string) => api.get(`/evaluator/reports/${id}`),
+  sign: (id: string, org_name?: string) => api.post(`/reports/${id}/sign`, { org_name }),
   submitReview: (id: string, payload: any) => api.post(`/evaluator/reports/${id}/review`, payload),
   applyAmendments: (id: string, payload: any) =>
     api.post(`/evaluator/reports/${id}/amendments`, payload),
@@ -189,6 +190,9 @@ export interface RagQueryResponse {
   }>;
   xai?: any;
   ml_risk?: any;
+  score_breakdown?: any[];
+  semantic_evaluation?: any[];
+  calibration?: Record<string, number>;
   evidence_scope?: {
     workflow_domains?: string[];
     direct_evidence_domains?: string[];
@@ -225,8 +229,8 @@ export const queryCompliance = async (payload: {
     topK: payload.topK,
     call_type: payload.callType,
     active_categories: payload.activeCategories,
-    enable_xai: payload.enableXai,
-    enable_semantic_ml: payload.enableSemanticMl,
+    enable_xai: payload.enableXai ?? true,
+    enable_semantic_ml: payload.enableSemanticMl ?? true,
     chat_id: payload.chatId || undefined,
   });
 };

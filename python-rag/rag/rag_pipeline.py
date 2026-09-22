@@ -38,6 +38,8 @@ from rag.prompt_builder import build_compliance_prompt
 from retrieval.retriever import LocalRetriever
 from rules.relevance import detect_relevant_categories, enrich_relevance_from_hits
 from rules.rule_engine import evaluate_rules
+from rules.scoring import RETRIEVAL_TOP_WEIGHT, compute_official_score
+from semantic.evaluator import SemanticComplianceEvaluator
 from xai.explainer import explain_decision, extract_features, score_from_features
 
 from ml.features import extract_workflow_features
@@ -163,6 +165,7 @@ class RAGPipeline:
     def __init__(self, retriever: LocalRetriever | None = None):
         self.retriever = retriever or LocalRetriever()
         self.llm = LLMClient()
+        self.semantic_evaluator = SemanticComplianceEvaluator()
 
     def _ml_risk_block(
         self,
@@ -311,6 +314,16 @@ class RAGPipeline:
             )
             )
 
+        semantic_evaluation = []
+        if enable_semantic_ml:
+            semantic_categories = active_categories or relevance.get("categories") or ["GENERAL"]
+            semantic_evaluation = self.semantic_evaluator.evaluate(
+                workflow_text=workflow_text,
+                active_categories=semantic_categories,
+                retrieval_hits=hits,
+                improvement_requested=improve,
+            )
+
         # Step 4: ML signal and rule-impact ranking
         ml_risk = self._ml_risk_block(rule_text, rule_out, hits, top_k)
         rule_assessments = _add_evidence_status(
@@ -319,13 +332,60 @@ class RAGPipeline:
 
         # Step 5: soft merge using deterministic formula
         vector, spec, _ = extract_features(workflow_text, rule_out, hits)
-        deterministic_score = score_from_features(vector, spec)
+        deterministic_score, score_breakdown, baseline_score, calibration = compute_official_score(
+            rule_out.get("triggered_rules") or [],
+            hits,
+            semantic_items=semantic_evaluation,
+            calibration_frozen=calibration_frozen,
+        )
 
         score = _merge_compliance_score(
             llm_struct.compliance_score,
             deterministic_score,
             score_improvement_requested=improve,
         )
+        llm_blend_delta = round(float(score) - float(deterministic_score), 4)
+        if abs(llm_blend_delta) > 0.001:
+            score_breakdown.append(
+                {
+                    "feature": "llm_score_blend",
+                    "label": "LLM score blend",
+                    "contribution": llm_blend_delta,
+                    "shap_value": llm_blend_delta,
+                    "active": True,
+                    "direction": "increases_score" if llm_blend_delta >= 0 else "decreases_score",
+                    "layer": "llm",
+                }
+            )
+        retrieval_scores: list[float] = []
+        for hit in hits:
+            try:
+                retrieval_scores.append(float(hit.get("score", hit.get("rerank_score", hit.get("similarity", 0.0)))))
+            except (TypeError, ValueError):
+                continue
+        top_retrieval_score = max(retrieval_scores, default=0.0)
+        semantic_penalty = sum(float(item.get("penalty_points") or 0.0) for item in semantic_evaluation)
+        rule_penalty = sum(
+            abs(float(row.get("contribution") or 0.0))
+            for row in score_breakdown
+            if str(row.get("feature") or "").startswith("rule:")
+        )
+        retrieval_bonus = top_retrieval_score * RETRIEVAL_TOP_WEIGHT
+        score_calculation = {
+            "baseline_score": round(float(baseline_score), 2),
+            "rule_penalty": round(rule_penalty, 2),
+            "semantic_penalty": round(semantic_penalty, 2),
+            "retrieval_top_score": round(top_retrieval_score, 4),
+            "retrieval_weight": RETRIEVAL_TOP_WEIGHT,
+            "retrieval_bonus": round(retrieval_bonus, 2),
+            "deterministic_score": round(float(deterministic_score), 2),
+            "llm_score": int(llm_struct.compliance_score),
+            "deterministic_weight": 0.7,
+            "llm_weight": 0.3,
+            "llm_blend_adjustment": llm_blend_delta,
+            "score_improvement_adjustment": 5.0 if improve else 0.0,
+            "final_score": int(score),
+        }
         score_risk = _risk_from_score(score)
         rule_llm_risk = _pick_higher_risk(rule_out["risk_level"], llm_struct.risk_level)
         # When score is strong, prefer the score-aligned band so UI is not stuck on HIGH·40.
@@ -385,6 +445,24 @@ class RAGPipeline:
                         "Update includes superseded/legacy references for change comparison."
                     ]
 
+        xai_payload = (
+            explain_decision(
+                workflow_text=rule_text,
+                rules_out=rule_out,
+                retrieval_hits=hits,
+                final_score=final.compliance_score,
+                final_risk=final.risk_level,
+                score_breakdown=score_breakdown,
+                baseline_score=baseline_score,
+            )
+            if enable_xai
+            else {}
+        )
+        if xai_payload:
+            xai_payload["semantic_evaluation"] = semantic_evaluation
+            xai_payload["calibration"] = calibration
+            xai_payload["score_calculation"] = score_calculation
+
         return {
             "analysis": final.model_dump(),
             "rules": rule_out,
@@ -392,17 +470,10 @@ class RAGPipeline:
             "evidence_scope": evidence_scope,
             "rule_assessments": rule_assessments,
             "relevance": relevance,
-            "xai": (
-                explain_decision(
-                    workflow_text=rule_text,
-                    rules_out=rule_out,
-                    retrieval_hits=hits,
-                    final_score=final.compliance_score,
-                    final_risk=final.risk_level,
-                )
-                if enable_xai
-                else {}
-            ),
+            "score_breakdown": score_breakdown,
+            "semantic_evaluation": semantic_evaluation,
+            "calibration": calibration,
+            "xai": xai_payload,
             "ml_risk": ml_risk,
         }
 

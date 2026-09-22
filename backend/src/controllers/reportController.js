@@ -11,6 +11,30 @@ import { resolveCalibrationFrozenForChat } from "../services/calibrationService.
 import { clearReportPdfFiles, resolveReportPdfPath } from "../utils/reportPdfPaths.js";
 import { buildEvaluationLogEntry } from "../utils/evaluationLog.js";
 
+function reportCitations(result) {
+  const analysisClauses = Array.isArray(result?.analysis?.applicable_clauses)
+    ? result.analysis.applicable_clauses
+    : [];
+  if (analysisClauses.length > 0) return analysisClauses;
+
+  // Keep the RAG evidence visible for evaluator review when the applicability
+  // gate correctly refuses to promote similarity-only text to a legal clause.
+  return (Array.isArray(result?.retrieval_hits) ? result.retrieval_hits : [])
+    .slice(0, 5)
+    .map((hit) => {
+      const metadata = hit.metadata || {};
+      return {
+        title: hit.section || metadata.title || "Retrieved regulatory evidence",
+        text: (hit.text || "").slice(0, 1200),
+        source: metadata.relative_path || metadata.source || hit.document_id || "",
+        basis: hit.evidence_scope?.basis || "retrieved_supporting_evidence",
+        applicability_note:
+          hit.evidence_scope?.applicability_note ||
+          "Retrieved as supporting context. Applicability was not established as a definitive legal clause.",
+      };
+    });
+}
+
 export async function generateReport(req, res) {
   const { workflow_text, regulator, chat_id } = req.body;
   const user_id = req.user?.user_id || req.body.user_id || "system";
@@ -39,6 +63,7 @@ export async function generateReport(req, res) {
   );
 
   const analysis = result?.analysis || {};
+  const citations = reportCitations(result);
   const report_id = `rep-${crypto.randomBytes(4).toString("hex")}`;
   const compliance_score =
     typeof analysis.compliance_score === "number" ? analysis.compliance_score : 55;
@@ -50,7 +75,7 @@ export async function generateReport(req, res) {
     workflow_input: { text: workflow_text, regulator },
     risk_level: analysis.risk_level || "MEDIUM",
     risk_flags: analysis.risk_flags || [],
-    applicable_clauses: Array.isArray(analysis.applicable_clauses) ? analysis.applicable_clauses : [],
+    applicable_clauses: citations,
     explanation: analysis.explanation || "Automated analysis completed.",
     recommendations: analysis.recommendations || [],
     compliance_score,
@@ -102,6 +127,7 @@ export async function updateReport(req, res) {
   );
 
   const analysis = result?.analysis || {};
+  const citations = reportCitations(result);
   const aiLog = buildEvaluationLogEntry({
     action: "ai_refresh",
     actor: { name: "Finace AI Engine", role: "system", id: "system" },
@@ -128,7 +154,7 @@ export async function updateReport(req, res) {
       },
       risk_level: analysis.risk_level || existing.risk_level,
       risk_flags: analysis.risk_flags || existing.risk_flags,
-      applicable_clauses: analysis.applicable_clauses || existing.applicable_clauses,
+      applicable_clauses: citations.length ? citations : existing.applicable_clauses,
       explanation: analysis.explanation || existing.explanation,
       recommendations: analysis.recommendations || existing.recommendations,
       compliance_score:

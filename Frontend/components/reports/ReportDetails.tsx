@@ -170,12 +170,23 @@ export function ReportDetails({ report }: { report: any }) {
                   {toDisplayText(clause.title || "Compliance Clause")}
                 </h4>
 
+                {clause.basis && clause.basis !== "direct" && (
+                  <p className="mb-2 text-[10px] uppercase tracking-wider text-yellow-200/65">
+                    Supporting RAG evidence · applicability requires validation
+                  </p>
+                )}
+
                 <div className="relative overflow-hidden transition-all duration-500 ease-in-out max-h-20 group-hover:max-h-[500px]">
                   <p className="text-xs text-white/45 leading-relaxed italic group-hover:text-white/70 transition-colors">
                     &quot;{toDisplayText(clause.text || "")}&quot;
                   </p>
                   <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-[#0d1413] to-transparent group-hover:opacity-0 transition-opacity duration-300" />
                 </div>
+                {clause.applicability_note && (
+                  <p className="mt-2 text-[10px] leading-4 text-white/35">
+                    {toDisplayText(clause.applicability_note)}
+                  </p>
+                )}
               </div>
             );
           })}

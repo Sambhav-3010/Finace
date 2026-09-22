@@ -43,15 +43,18 @@ async function toChatResponse(result) {
   const applicableClauses = Array.isArray(analysis.applicable_clauses)
     ? analysis.applicable_clauses
     : [];
-  const citationHits = applicableClauses.length > 0 ? applicableClauses : [];
+  // Keep retrieved evidence visible even when the applicability gate does not
+  // promote a chunk into the legal clause schedule.
+  const citationHits = applicableClauses.length > 0 ? applicableClauses : uniqueHits;
   const sources = citationHits.map(hit => {
     const lookup = docLookup[hit.document_id] || {};
+    const metadata = hit.metadata || {};
     return {
       document_id: hit.document_id || "Regulation",
       section: hit.section || hit.title || "General",
       text: hit.text || hit.content || "",
-      relative_path: lookup.relative_path || hit.relative_path || hit.metadata?.relative_path || "",
-      source_file: lookup.source_file || hit.source || hit.metadata?.source || "",
+      relative_path: lookup.relative_path || hit.relative_path || metadata.relative_path || "",
+      source_file: lookup.source_file || hit.source || metadata.source || "",
       basis: hit.basis || "direct",
       applicability_note: hit.applicability_note || "",
     };
@@ -78,6 +81,9 @@ async function toChatResponse(result) {
     reasoningSteps: analysis.reasoning_steps || [],
     xai: result?.xai || {},
     ml_risk: result?.ml_risk || {},
+    score_breakdown: result?.score_breakdown || result?.xai?.score_breakdown || [],
+    semantic_evaluation: result?.semantic_evaluation || result?.xai?.semantic_evaluation || [],
+    calibration: result?.calibration || result?.xai?.calibration || {},
     evidence_scope: result?.evidence_scope || {},
     rule_assessments: result?.rule_assessments || [],
     analysis,
