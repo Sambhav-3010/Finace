@@ -6,6 +6,7 @@ export interface WorkflowMessage {
     risk_flags?: string[];
     compliance_score?: number;
     risk_level?: string;
+    recommendations?: string[];
     xai?: any;
     ml_risk?: any;
     ml_validation?: any;

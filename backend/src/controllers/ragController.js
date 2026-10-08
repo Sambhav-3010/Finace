@@ -43,17 +43,18 @@ async function toChatResponse(result) {
   const applicableClauses = Array.isArray(analysis.applicable_clauses)
     ? analysis.applicable_clauses
     : [];
-  const citationHits = applicableClauses.length > 0 ? applicableClauses : [];
+  const citationHits = applicableClauses.length > 0 ? applicableClauses : uniqueHits;
   const sources = citationHits.map(hit => {
     const lookup = docLookup[hit.document_id] || {};
+    const scope = hit.evidence_scope || {};
     return {
       document_id: hit.document_id || "Regulation",
       section: hit.section || hit.title || "General",
       text: hit.text || hit.content || "",
       relative_path: lookup.relative_path || hit.relative_path || hit.metadata?.relative_path || "",
       source_file: lookup.source_file || hit.source || hit.metadata?.source || "",
-      basis: hit.basis || "direct",
-      applicability_note: hit.applicability_note || "",
+      basis: hit.basis || scope.basis || "direct",
+      applicability_note: hit.applicability_note || scope.applicability_note || "",
     };
   });
 

@@ -4,11 +4,7 @@ import { FormEvent, useState } from "react";
 import { motion } from "framer-motion";
 
 import { queryCompliance, type RagQueryResponse } from "@/services/api";
-import { ExplainabilityPanel } from "@/components/reports/ExplainabilityPanel";
-import { MLRiskPanel } from "@/components/reports/MLRiskPanel";
-import { MLValidationCard } from "@/components/ml-validation/MLValidationCard";
-import { EvidenceScopeNotice } from "@/components/reports/EvidenceScopeNotice";
-import { RuleImpactPanel } from "@/components/reports/RuleImpactPanel";
+import { AnalysisResultStack } from "@/components/analysis/AnalysisResultStack";
 
 const starterPrompt =
   "We are launching a cross-border crypto wallet for users in India and the UAE without KYC. What compliance risks should we address first?";
@@ -43,8 +39,8 @@ export function ComplianceQueryPanel() {
             <p className="text-sm text-accent">Live Query Flow</p>
             <h2 className="mt-3 text-2xl font-semibold text-white">Ask · Retrieve · Explain</h2>
             <p className="mt-2 text-sm text-white/50 leading-6 max-w-lg">
-              Queries run through Node → FastAPI RAG, then the ML risk model and exact probability-SHAP
-              explain the drivers behind each compliance decision.
+              Queries run through Node → FastAPI RAG. Finace assessment remains primary; independent ML
+              validation is shown separately and never overrides regulatory evidence.
             </p>
           </div>
           <span className="rounded-full border border-accent/20 bg-accent/10 px-3 py-1 text-xs uppercase tracking-[0.18em] text-accent">
@@ -93,7 +89,7 @@ export function ComplianceQueryPanel() {
       <div className="space-y-4">
         <div className="glass rounded-[1.8rem] p-6">
           <p className="text-sm text-accent">Response Surface</p>
-          <h2 className="mt-3 text-2xl font-semibold text-white">RAG result summary</h2>
+          <h2 className="mt-3 text-2xl font-semibold text-white">Compliance result</h2>
 
           {isSubmitting ? (
             <div className="mt-6 space-y-4">
@@ -106,108 +102,41 @@ export function ComplianceQueryPanel() {
               <p className="mt-3 text-sm leading-7 text-rose-50/85">{error}</p>
             </div>
           ) : result ? (
-            <div className="mt-6 space-y-4">
-              <EvidenceScopeNotice scope={result.evidence_scope} />
-              <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-5">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <span className="rounded-full bg-white/8 px-3 py-1 text-xs uppercase tracking-[0.18em] text-white/70">
-                    {result.riskLevel} Risk
-                  </span>
-                  <span className="text-xs uppercase tracking-[0.18em] text-white/45">
-                    Score {result.complianceScore ?? "--"}/100
-                  </span>
-                </div>
-                <p className="mt-4 text-sm leading-7 text-white/78">{result.answer}</p>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-5">
-                  <p className="text-xs uppercase tracking-[0.18em] text-white/40">Risk Flags</p>
-                  <div className="mt-4 space-y-3">
-                    {result.riskFlags.length > 0 ? (
-                      result.riskFlags.slice(0, 4).map((flag) => (
-                        <p key={flag} className="text-sm leading-6 text-white/72">
-                          {flag}
-                        </p>
-                      ))
-                    ) : (
-                      <p className="text-sm text-white/55">No explicit risk flags returned.</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-5">
-                  <p className="text-xs uppercase tracking-[0.18em] text-white/40">Recommendations</p>
-                  <div className="mt-4 space-y-3">
-                    {result.recommendations.length > 0 ? (
-                      result.recommendations.slice(0, 4).map((recommendation) => (
-                        <p key={recommendation} className="text-sm leading-6 text-white/72">
-                          {recommendation}
-                        </p>
-                      ))
-                    ) : (
-                      <p className="text-sm text-white/55">No recommendations returned.</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <motion.div className="mt-6" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <AnalysisResultStack
+                compact
+                riskLevel={result.riskLevel}
+                complianceScore={result.complianceScore}
+                riskFlags={result.riskFlags}
+                ruleAssessments={result.rule_assessments}
+                evidenceScope={result.evidence_scope}
+                sources={result.sources || result.citations}
+                recommendations={result.recommendations}
+                mlValidation={result.ml_validation}
+                mlRisk={result.ml_risk}
+                xai={result.xai}
+                narrative={
+                  result.answer ? (
+                    <div className="rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-3 text-sm leading-7 text-white/75">
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
+                        Assessment narrative
+                      </p>
+                      {result.answer}
+                    </div>
+                  ) : null
+                }
+              />
+            </motion.div>
           ) : (
             <div className="mt-6 rounded-[1.4rem] border border-dashed border-white/10 bg-white/[0.03] p-5">
               <p className="text-sm leading-7 text-white/60">
-                Submit a query to render the structured compliance response and XAI charts here.
+                Submit a query to render the Finace assessment, regulatory evidence, and independent ML
+                validation here.
               </p>
             </div>
           )}
         </div>
-
-        <div className="glass rounded-[1.8rem] p-6">
-          <p className="text-xs uppercase tracking-[0.18em] text-white/45">Citations</p>
-          <div className="mt-5 space-y-4">
-            {result?.citations?.length || result?.sources?.length ? (
-              (result.citations || result.sources || []).slice(0, 3).map((citation: any, index: number) => (
-                <article key={`${citation.source || citation.document_id}-${index}`} className="rounded-[1.3rem] border border-white/8 bg-white/[0.03] p-4">
-                  <p className="text-xs uppercase tracking-[0.16em] text-white/40">
-                    {citation.source || citation.document_id || "Source"}
-                  </p>
-                  <h3 className="mt-3 text-base font-semibold text-white">
-                    {citation.title || citation.section || "Applicable Clause"}
-                  </h3>
-                  <p className="mt-3 text-sm leading-7 text-white/62">{citation.text}</p>
-                </article>
-              ))
-            ) : (
-              <p className="text-sm leading-7 text-white/58">
-                Citation cards will populate here from the RAG response.
-              </p>
-            )}
-          </div>
-        </div>
       </div>
-
-      {result?.ml_risk && (
-        <motion.div className="xl:col-span-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <MLRiskPanel mlRisk={result.ml_risk} />
-        </motion.div>
-      )}
-
-      {result?.ml_validation && (
-        <motion.div className="xl:col-span-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <MLValidationCard mlValidation={result.ml_validation} />
-        </motion.div>
-      )}
-
-      {result?.rule_assessments?.length ? (
-        <motion.div className="xl:col-span-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <RuleImpactPanel assessments={result.rule_assessments} />
-        </motion.div>
-      ) : null}
-
-      {result?.xai && (
-        <motion.div className="xl:col-span-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <ExplainabilityPanel xai={result.xai} />
-        </motion.div>
-      )}
     </section>
   );
 }

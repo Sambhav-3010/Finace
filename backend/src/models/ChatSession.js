@@ -8,6 +8,7 @@ const messageSchema = new mongoose.Schema(
     risk_level: String,
     risk_flags: { type: [String], default: [] },
     compliance_score: Number,
+    recommendations: { type: [String], default: [] },
     reasoning_steps: { type: [String], default: [] },
     xai: { type: Object, default: {} },
     analysis: { type: Object, default: {} },

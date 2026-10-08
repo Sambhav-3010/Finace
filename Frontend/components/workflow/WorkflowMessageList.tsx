@@ -1,11 +1,6 @@
 import { motion } from "framer-motion";
-import { ExternalLink, ShieldAlert, User as UserIcon } from "lucide-react";
-import { ExplainabilityPanel } from "@/components/reports/ExplainabilityPanel";
-import { MLRiskPanel } from "@/components/reports/MLRiskPanel";
-import { MLValidationCard } from "@/components/ml-validation/MLValidationCard";
-import { RuleImpactPanel } from "@/components/reports/RuleImpactPanel";
-import { resolvePublicDocUrl, isPdfSourcePath } from "@/lib/docs/publicDocUrl";
-import { sourceLabel } from "@/lib/workflow/sourceUtils";
+import { ShieldAlert, User as UserIcon } from "lucide-react";
+import { AnalysisResultStack } from "@/components/analysis/AnalysisResultStack";
 import type { WorkflowMessage } from "@/lib/workflow/types";
 
 function formatMessageHtml(content: string) {
@@ -43,46 +38,36 @@ export function WorkflowMessageList({ messages, loading, scrollRef }: Props) {
               </div>
             )}
             <div className={`max-w-[92%] space-y-3 ${m.role === "user" ? "" : "min-w-0 flex-1"}`}>
-              <div
-                className={`px-4 py-3 text-[15px] leading-7 ${
-                  m.role === "user"
-                    ? "rounded-[22px] border border-white/10 bg-white/[0.06] backdrop-blur-sm text-white/90"
-                    : "text-white/80"
-                }`}
-                dangerouslySetInnerHTML={{ __html: formatMessageHtml(m.content) }}
-              />
-
-              {m.role === "ai" && m.sources && m.sources.length > 0 && (
-                <SourceList sources={m.sources} />
-              )}
-
-              {m.data?.risk_flags && m.data.risk_flags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {m.data.risk_flags.map((flag, fi) => (
-                    <span
-                      key={fi}
-                      className="rounded-full border border-rose-400/20 bg-rose-500/10 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-rose-300"
-                    >
-                      {flag}
-                    </span>
-                  ))}
+              {m.role === "user" ? (
+                <div className="rounded-[22px] border border-white/10 bg-white/[0.06] backdrop-blur-sm px-4 py-3 text-[15px] leading-7 text-white/90">
+                  <div dangerouslySetInnerHTML={{ __html: formatMessageHtml(m.content) }} />
                 </div>
-              )}
-
-              {m.role === "ai" && m.data?.ml_risk && (
-                <MLRiskPanel mlRisk={m.data.ml_risk} compact />
-              )}
-
-              {m.role === "ai" && m.data?.ml_validation && (
-                <MLValidationCard mlValidation={m.data.ml_validation} compact />
-              )}
-
-              {m.role === "ai" && m.data?.rule_assessments?.length ? (
-                <RuleImpactPanel assessments={m.data.rule_assessments} />
-              ) : null}
-
-              {m.role === "ai" && m.data?.xai && (
-                <ExplainabilityPanel xai={m.data.xai} compact />
+              ) : (
+                <AnalysisResultStack
+                  compact
+                  riskLevel={m.data?.risk_level}
+                  complianceScore={m.data?.compliance_score}
+                  riskFlags={m.data?.risk_flags}
+                  ruleAssessments={m.data?.rule_assessments}
+                  evidenceScope={m.data?.evidence_scope}
+                  sources={m.sources}
+                  recommendations={
+                    m.data?.recommendations || m.data?.analysis?.recommendations || []
+                  }
+                  mlValidation={m.data?.ml_validation}
+                  mlRisk={m.data?.ml_risk}
+                  xai={m.data?.xai}
+                  narrative={
+                    m.content ? (
+                      <div className="rounded-2xl border border-white/8 bg-white/[0.02] px-4 py-3 text-[15px] leading-7 text-white/75">
+                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">
+                          Assessment narrative
+                        </p>
+                        <div dangerouslySetInnerHTML={{ __html: formatMessageHtml(m.content) }} />
+                      </div>
+                    ) : null
+                  }
+                />
               )}
             </div>
             {m.role === "user" && (
@@ -95,42 +80,6 @@ export function WorkflowMessageList({ messages, loading, scrollRef }: Props) {
 
         {loading && <TypingIndicator />}
       </div>
-    </div>
-  );
-}
-
-function SourceList({ sources }: { sources: any[] }) {
-  return (
-    <div className="space-y-1 border-l-2 border-white/10 pl-3">
-      <p className="text-[11px] font-medium uppercase tracking-wider text-white/35">Sources</p>
-      {sources.map((source, si) => {
-        const relPath =
-          source.relative_path ||
-          source.source_file ||
-          source.source ||
-          source.file_path ||
-          source.document_id ||
-          "";
-        const docUrl = isPdfSourcePath(relPath) ? resolvePublicDocUrl(relPath) : null;
-        const fileName = sourceLabel(source);
-
-        return docUrl ? (
-          <a
-            key={si}
-            href={docUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-[13px] text-accent/90 hover:text-accent"
-          >
-            <span className="truncate">{fileName}</span>
-            <ExternalLink className="h-3 w-3 shrink-0 opacity-50" />
-          </a>
-        ) : (
-          <p key={si} className="truncate text-[13px] text-white/40">
-            {fileName}
-          </p>
-        );
-      })}
     </div>
   );
 }

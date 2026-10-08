@@ -102,8 +102,12 @@ export function ExplainabilityPanel({
           <div className="flex items-center gap-2">
             <BrainCircuit className="h-4 w-4 text-accent" />
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">Why this score</p>
-              <p className="text-xs text-white/55">Surrogate SHAP drivers of the rule-engine score</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+                Model / Surrogate Explanation
+              </p>
+              <p className="text-xs text-white/55">
+                Surrogate SHAP drivers — not regulatory evidence
+              </p>
             </div>
           </div>
           <span className={`border px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${riskTone(xai.observed_risk)}`}>
@@ -154,8 +158,8 @@ export function ExplainabilityPanel({
         </div>
 
         <p className="text-[10px] leading-4 text-white/35">
+          These explanations describe model or surrogate-model behavior and are not regulatory evidence.
           Attribution units follow the surrogate model output (log-odds), not calibrated probability.
-          The ML risk prediction with probability-space SHAP is shown in the ML Risk Prediction panel. Calibration was evaluated separately; these outputs are not calibrated confidence.
         </p>
       </div>
     );
@@ -171,9 +175,9 @@ export function ExplainabilityPanel({
         <div className="flex items-center gap-3">
           <BrainCircuit className="h-5 w-5 text-accent" />
           <div>
-            <h3 className="text-sm font-semibold text-white">Explainable AI</h3>
+            <h3 className="text-sm font-semibold text-white">Model / Surrogate Explanation</h3>
             <p className="text-xs text-white/45">
-              Surrogate SHAP/LIME drivers behind the hybrid rule-engine score (does not explain the ML risk model)
+              Surrogate SHAP/LIME drivers behind the hybrid score. These are not regulatory evidence and do not explain the independent ML validation model.
             </p>
           </div>
         </div>

@@ -76,10 +76,10 @@ export function MLRiskPanel({ mlRisk, compact = false }: { mlRisk?: MlRiskPayloa
           <Activity className="h-4 w-4 text-accent" />
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
-              ML Risk Prediction
+              Model / Surrogate Explanation
             </p>
             <p className="text-xs text-white/55">
-              {mlRisk.explanation?.method || "ml"}
+              Structured risk model · not regulatory evidence
               {mlRisk.risk_class ? ` · P(HIGH)=${pct(mlRisk.probabilities?.["HIGH"])}` : ""}
             </p>
           </div>
