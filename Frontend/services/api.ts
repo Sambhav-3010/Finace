@@ -296,6 +296,8 @@ export const mlValidationApi = {
       },
     }),
   caseDetail: (caseId: string) => api.get(`/ml-validation/cases/${encodeURIComponent(caseId)}`),
+  requirements: (params?: { q?: string; domain?: string; limit?: number; offset?: number }) =>
+    api.get("/ml-validation/requirements", { params }),
 };
 
 export default api;

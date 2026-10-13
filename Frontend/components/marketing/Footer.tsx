@@ -3,7 +3,7 @@ import { ACCENT_RGB } from "@/lib/theme/colors";
 
 export function Footer() {
   return (
-    <footer className="border-t border-white/[0.06] bg-[#090d0d]">
+    <footer className="border-t border-emerald-100/[0.08] bg-ink">
       <div className="shell relative z-10 flex flex-wrap items-center justify-between gap-4 py-8">
         <div className="flex items-center gap-2 text-sm text-white/50">
           <ShieldCheck className="h-4 w-4 text-accent" />

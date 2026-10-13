@@ -4,9 +4,16 @@
 
 :root {
   color-scheme: dark;
-  --accent: #4ade80;
-  --accent-rgb: 74, 222, 128;
-  --accent-deep-rgb: 34, 160, 96;
+  --accent: #28a879;
+  --accent-rgb: 40, 168, 121;
+  --accent-deep-rgb: 20, 126, 88;
+  --page: #101714;
+  --sidebar: #14231c;
+  --surface: #19221d;
+  --surface-raised: #202b24;
+  --border-subtle: #2a3930;
+  --text-primary: #f1f5f2;
+  --text-secondary: #a6b4aa;
 }
 
 * {
@@ -15,16 +22,34 @@
 
 html {
   scroll-behavior: smooth;
+  background: var(--page);
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(var(--accent-deep-rgb), 0.26), transparent 30%),
-    radial-gradient(circle at top right, rgba(var(--accent-rgb), 0.14), transparent 18%),
-    #090d0d;
-  color: #f5f7f6;
+  background: radial-gradient(ellipse 75% 35% at 50% 0%, rgba(var(--accent-deep-rgb), 0.11), transparent 72%), var(--page);
+  color: var(--text-primary);
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-heading), var(--font-body), sans-serif;
+  letter-spacing: -0.018em;
+}
+
+input, textarea, select {
+  accent-color: var(--accent);
+}
+
+::selection {
+  background: rgba(var(--accent-rgb), 0.32);
+  color: var(--text-primary);
+}
+
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid rgba(var(--accent-rgb), 0.88);
+  outline-offset: 2px;
 }
 
 a {
@@ -48,17 +73,10 @@ a {
 }
 
 .glass {
-  @apply relative overflow-hidden backdrop-blur-xl;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: linear-gradient(
-    165deg,
-    rgba(255, 255, 255, 0.075) 0%,
-    rgba(255, 255, 255, 0.028) 42%,
-    rgba(255, 255, 255, 0.012) 100%
-  );
-  box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.07),
-    0 12px 40px -16px rgba(0, 0, 0, 0.55);
+  @apply relative overflow-hidden backdrop-blur-md;
+  border: 1px solid rgba(117, 185, 154, 0.12);
+  background: linear-gradient(160deg, rgba(32, 43, 36, 0.94), rgba(25, 34, 29, 0.97));
+  box-shadow: 0 10px 30px -22px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.025);
 }
 
 .glass::before {
@@ -67,33 +85,26 @@ a {
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: radial-gradient(ellipse 85% 55% at 50% -15%, rgba(var(--accent-rgb), 0.08), transparent 58%);
+  background: radial-gradient(ellipse 85% 55% at 50% -15%, rgba(var(--accent-rgb), 0.035), transparent 62%);
 }
 
 .panel-inset {
   @apply relative rounded-xl;
-  background: rgba(255, 255, 255, 0.022);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045);
+  background: rgba(8, 16, 12, 0.34);
+  box-shadow: inset 0 0 0 1px rgba(117, 185, 154, 0.08);
 }
 
 .panel-accent {
   @apply relative overflow-hidden;
-  border: 1px solid rgba(var(--accent-rgb), 0.16);
-  background: linear-gradient(
-    145deg,
-    rgba(var(--accent-rgb), 0.13) 0%,
-    rgba(255, 255, 255, 0.03) 48%,
-    transparent 100%
-  );
-  box-shadow:
-    inset 0 1px 0 0 rgba(var(--accent-rgb), 0.14),
-    0 16px 48px -24px rgba(var(--accent-rgb), 0.18);
+  border: 1px solid rgba(var(--accent-rgb), 0.22);
+  background: linear-gradient(145deg, rgba(var(--accent-rgb), 0.08), rgba(25, 34, 29, 0.88) 62%);
+  box-shadow: inset 0 1px 0 rgba(var(--accent-rgb), 0.08);
 }
 
 .dashboard-grid {
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+    linear-gradient(rgba(166, 180, 170, 0.014) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(166, 180, 170, 0.014) 1px, transparent 1px);
   background-size: 56px 56px;
   mask-image: radial-gradient(ellipse 95% 75% at 50% 25%, black 10%, transparent 74%);
 }
@@ -126,6 +137,16 @@ a {
   background-image: theme("backgroundImage.dots");
   background-size: 14px 14px;
   mask-image: radial-gradient(circle at center, black 25%, transparent 70%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .prose-custom h1 {

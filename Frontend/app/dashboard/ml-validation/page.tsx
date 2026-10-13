@@ -12,6 +12,9 @@ import {
   ChevronRight,
   Loader2,
   AlertCircle,
+  Search,
+  ChevronLeft,
+  ChevronRight as RightIcon,
 } from "lucide-react";
 import {
   Bar,
@@ -50,7 +53,34 @@ export default function MLValidationPage() {
   const [compareCases, setCompareCases] = useState<any[]>([]);
   const [humanCases, setHumanCases] = useState<any[]>([]);
   const [casesLoading, setCasesLoading] = useState(false);
+  const [casesError, setCasesError] = useState<string | null>(null);
   const [selected, setSelected] = useState<any | null>(null);
+  const [requirements, setRequirements] = useState<any[]>([]);
+  const [requirementQuery, setRequirementQuery] = useState("");
+  const [requirementDomain, setRequirementDomain] = useState("");
+  const [requirementOffset, setRequirementOffset] = useState(0);
+  const [requirementTotal, setRequirementTotal] = useState(0);
+  const [requirementsLoading, setRequirementsLoading] = useState(false);
+  const [requirementsError, setRequirementsError] = useState<string | null>(null);
+  const [requirementSelected, setRequirementSelected] = useState<any | null>(null);
+  const [requirementRefresh, setRequirementRefresh] = useState(0);
+
+  useEffect(() => {
+    if (active !== "grounding") return;
+    let cancelled = false;
+    setRequirementsLoading(true);
+    setRequirementsError(null);
+    mlValidationApi.requirements({ q: requirementQuery, domain: requirementDomain, limit: 25, offset: requirementOffset })
+      .then((res: any) => {
+        if (cancelled) return;
+        setRequirements(res?.requirements || []);
+        setRequirementTotal(Number(res?.total) || 0);
+        setRequirementSelected((current: any) => current && (res?.requirements || []).some((r: any) => r.requirement_id === current.requirement_id) ? current : (res?.requirements || [])[0] || null);
+      })
+      .catch(() => { if (!cancelled) setRequirementsError("Unable to load regulatory requirements. Please retry."); })
+      .finally(() => { if (!cancelled) setRequirementsLoading(false); });
+    return () => { cancelled = true; };
+  }, [active, requirementQuery, requirementDomain, requirementOffset, requirementRefresh]);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,7 +92,7 @@ export default function MLValidationPage() {
         if (!cancelled) setData(res);
       } catch (e: any) {
         if (!cancelled) {
-          setError(e?.response?.data?.error || e?.message || "Failed to load ML validation dashboard");
+          setError("Unable to load ML validation data. Please retry.");
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -73,8 +103,16 @@ export default function MLValidationPage() {
     };
   }, []);
 
+  const retryDashboard = useCallback(async () => {
+    setLoading(true); setError(null);
+    try { const res: any = await mlValidationApi.dashboard(); setData(res); }
+    catch { setError("Unable to load ML validation data. Please retry."); }
+    finally { setLoading(false); }
+  }, []);
+
   const loadCases = useCallback(async (setName: "robustness" | "human" | "comparison") => {
     setCasesLoading(true);
+    setCasesError(null);
     try {
       const res: any = await mlValidationApi.cases({ set: setName, limit: 12, offset: 0 });
       const rows = res?.cases || [];
@@ -83,7 +121,7 @@ export default function MLValidationPage() {
       if (setName === "human") setHumanCases(rows);
       if (rows[0]) setSelected(rows[0]);
     } catch {
-      /* keep prior */
+      setCasesError("Unable to load validation cases. Please retry.");
     } finally {
       setCasesLoading(false);
     }
@@ -112,17 +150,23 @@ export default function MLValidationPage() {
   }, [performance]);
 
   const metricCards = [
-    { label: "Current Model", value: overview?.current_model || "—" },
+    { label: "Current Model · Type", value: overview?.model_type ? `${overview?.current_model || "Current model"} · ${String(overview.model_type).replace(/_/g, " ")}` : overview?.current_model || "Not available" },
     {
       label: "Compliance Scenarios",
-      value: overview?.compliance_scenarios?.toLocaleString?.() || "—",
+      value: overview?.compliance_scenarios?.toLocaleString?.() || "Not available",
     },
-    { label: "Main Test Accuracy", value: overview?.main_test_accuracy_display || "—" },
+    { label: "Test Accuracy", value: overview?.main_test_accuracy_display || "Not available" },
+    { label: "Test Macro-F1", value: overview?.test_macro_f1_display || "Not available" },
+    { label: "Regulatory Requirements", value: overview?.regulatory_requirement_count?.toLocaleString?.() || "Not available" },
     {
       label: "Unseen Requirement Accuracy",
-      value: overview?.unseen_requirement_accuracy_display || "—",
+      value: overview?.unseen_requirement_accuracy_display || "Not available",
     },
-    { label: "Robustness Test", value: overview?.robustness_accuracy_display || "—" },
+    { label: "Unseen Requirement Macro-F1", value: overview?.unseen_requirement_macro_f1_display || "Not available" },
+    { label: "Adversarial Accuracy", value: overview?.adversarial_accuracy_display || "Not available" },
+    { label: "Adversarial Macro-F1", value: overview?.adversarial_macro_f1_display || "Not available" },
+    { label: "Test ECE", value: overview?.test_ece != null ? Number(overview.test_ece).toFixed(4) : "Not available" },
+    { label: "Adversarial ECE", value: overview?.adversarial_ece != null ? Number(overview.adversarial_ece).toFixed(4) : "Not available" },
     {
       label: "Human Validation",
       value:
@@ -134,9 +178,9 @@ export default function MLValidationPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center gap-3 text-white/50">
-        <Loader2 className="h-5 w-5 animate-spin text-accent" />
-        Loading ML Validation…
+      <div className="mx-auto min-h-[50vh] max-w-6xl space-y-5" role="status" aria-label="Loading ML Validation">
+        <div className="h-32 animate-pulse rounded-3xl bg-white/[0.04]" />
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">{Array.from({ length: 6 }, (_, i) => <div key={i} className="h-24 animate-pulse rounded-2xl bg-white/[0.04]" />)}</div>
       </div>
     );
   }
@@ -152,6 +196,7 @@ export default function MLValidationPage() {
               {error ||
                 "ML validation artifacts are not available. Ensure the Python RAG service is running and the current model has been trained."}
             </p>
+            <button type="button" onClick={retryDashboard} className="mt-4 rounded-xl border border-white/15 px-4 py-2 text-sm text-white/75 hover:bg-white/5">Retry</button>
           </div>
         </div>
       </div>
@@ -175,7 +220,10 @@ export default function MLValidationPage() {
           </div>
           <div className="rounded-2xl border border-accent/25 bg-accent/10 px-4 py-3">
             <p className="text-[10px] uppercase tracking-wider text-accent/70">Current Model</p>
-            <p className="text-lg font-semibold text-accent">{overview?.current_model}</p>
+            <p className="text-lg font-semibold text-accent">{overview?.current_model || "Not available"}</p>
+            <p className="mt-1 text-[11px] text-accent/55">Model version trained {overview?.model_trained_at || "timestamp unavailable"}</p>
+            <p className="mt-1 text-[11px] text-accent/55">Evaluated {overview?.model_evaluated_at || "timestamp unavailable"}</p>
+            <p className="mt-1 text-[10px] text-accent/45">Evaluation artifact updated {overview?.evaluation_artifact_updated_at || "date unavailable"}</p>
           </div>
         </div>
         <p className="mt-5 rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-[13px] leading-6 text-white/60">
@@ -348,6 +396,14 @@ export default function MLValidationPage() {
             </div>
           </div>
 
+          <div className="grid gap-4 lg:grid-cols-2">
+            <MetricTable title="Test set · per-class performance" data={performance?.test_status} />
+            <MetricTable title="Unseen requirements · per-class performance" data={performance?.unseen_status} />
+          </div>
+          <div className="glass rounded-[1.4rem] p-6">
+            <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-white/50">Test set class distribution</h3>
+            <ClassDistribution data={performance?.test_status?.classification_report} />
+          </div>
           {domainChart.length > 0 && (
             <div className="glass rounded-[1.4rem] p-6">
               <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-white/40">
@@ -394,14 +450,19 @@ export default function MLValidationPage() {
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <StatTile label="Robustness Test Cases" value={robustness?.n_cases ?? "—"} />
               <StatTile label="Accuracy" value={robustness?.accuracy_display ?? "—"} />
+              <StatTile label="Adversarial Macro-F1" value={robustness?.macro_f1_display ?? "Not available"} />
+              <StatTile label="ECE" value={robustness?.ece != null ? Number(robustness.ece).toFixed(4) : "Not available"} />
             </div>
+            {!!robustness?.feature_warnings?.length && <div className="mt-5 space-y-2"><h3 className="text-xs font-semibold uppercase tracking-wider text-amber-200/80">Measured model behavior warnings</h3>{robustness.feature_warnings.map((warning: any) => <div key={`${warning.kind}-${warning.feature}`} className="rounded-xl border border-amber-400/20 bg-amber-500/[0.06] p-3"><p className="text-sm font-medium text-amber-100">{String(warning.feature || "Feature").replace(/_/g, " ")}{warning.importance != null ? ` · ${(warning.importance * 100).toFixed(1)}% importance` : ""}{warning.presence_rate != null ? ` · ${(warning.presence_rate * 100).toFixed(1)}% occurrence` : ""}</p><p className="mt-1 text-xs leading-5 text-white/50">{warning.finding}</p></div>)}</div>}
           </div>
           <CaseBrowser
             title="Inspect robustness cases"
             cases={robustCases}
             loading={casesLoading}
+            error={casesError}
             selectedId={selected?.case_id}
             onSelect={setSelected}
+            onRetry={() => void loadCases("robustness")}
             mode="robustness"
           />
         </section>
@@ -419,13 +480,12 @@ export default function MLValidationPage() {
               that the model is not generating regulatory truth.
             </p>
           </div>
-          <CaseBrowser
-            title="Grounded cases"
-            cases={robustCases}
-            loading={casesLoading}
-            selectedId={selected?.case_id}
-            onSelect={setSelected}
-            mode="grounding"
+          <RequirementBrowser
+            rows={requirements} loading={requirementsLoading} error={requirementsError}
+            query={requirementQuery} onQuery={(v: string) => { setRequirementQuery(v); setRequirementOffset(0); }}
+            domain={requirementDomain} onDomain={(v: string) => { setRequirementDomain(v); setRequirementOffset(0); }}
+            offset={requirementOffset} total={requirementTotal} onOffset={setRequirementOffset}
+            selected={requirementSelected} onSelect={setRequirementSelected} onRetry={() => setRequirementRefresh((v) => v + 1)}
           />
         </section>
       )}
@@ -452,7 +512,10 @@ export default function MLValidationPage() {
                 label="Disagreements"
                 value={compare?.risk_disagreement?.n_disagree ?? "—"}
               />
+              <StatTile label="Risk disagreement rate" value={compare?.risk_disagreement?.rate != null ? `${(compare.risk_disagreement.rate * 100).toFixed(1)}%` : "Not available"} />
+              <StatTile label="Cases requiring review" value={compare?.risk_disagreement?.review_required_count ?? "Not available"} />
             </div>
+            <p className="mt-3 text-xs text-white/40">Comparison uses exact risk-category equality between ML and the deterministic rules baseline. High-risk-only agreement and status-level paired Finace metrics are unavailable. Benchmark agreement against expected labels is separate from Finace agreement.</p>
             {compare?.risk_disagreement?.pairs && (
               <div className="mt-5">
                 <p className="text-[11px] uppercase tracking-wider text-white/35">
@@ -476,8 +539,10 @@ export default function MLValidationPage() {
             title="Comparison samples"
             cases={compareCases}
             loading={casesLoading}
+            error={casesError}
             selectedId={selected?.case_id}
             onSelect={setSelected}
+            onRetry={() => void loadCases("comparison")}
             mode="comparison"
           />
         </section>
@@ -488,6 +553,8 @@ export default function MLValidationPage() {
           <div className="glass rounded-[1.4rem] p-6">
             <h2 className="text-lg font-semibold text-white">Human Validation</h2>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <StatTile label="Reviewer-confirmed cases" value={human?.approved_count ?? "Not available"} />
+              <StatTile label="Pending reviews" value={human?.pending_count ?? "Not available"} />
               <StatTile
                 label="Cases Reserved for Human Validation"
                 value={human?.n_cases ?? "—"}
@@ -521,14 +588,39 @@ export default function MLValidationPage() {
             title="Human validation cases"
             cases={humanCases}
             loading={casesLoading}
+            error={casesError}
             selectedId={selected?.case_id}
             onSelect={setSelected}
+            onRetry={() => void loadCases("human")}
             mode="human"
           />
         </section>
       )}
     </div>
   );
+}
+
+function MetricTable({ title, data }: { title: string; data?: any }) {
+  const rows = Object.entries(data?.per_class || {}) as Array<[string, any]>;
+  return <div className="glass rounded-[1.4rem] p-6"><h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-white/50">{title}</h3>{rows.length ? <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[420px] text-sm"><thead><tr className="border-b border-white/10 text-left text-[10px] uppercase tracking-wider text-white/40"><th className="py-2">Class</th><th>Precision</th><th>Recall</th><th>F1</th></tr></thead><tbody>{rows.map(([label, m]) => <tr key={label} className="border-b border-white/5"><td className="py-2 text-white/75">{label.replace(/_/g, " ")}</td><td className="tabular-nums text-white/65">{m.precision ?? "Not available"}</td><td className="tabular-nums text-white/65">{m.recall ?? "Not available"}</td><td className="tabular-nums text-white/65">{m.f1 ?? "Not available"}</td></tr>)}</tbody></table></div> : <p className="mt-4 text-sm text-white/40">Per-class results are not available.</p>}<p className="mt-3 text-xs text-white/40">Macro-F1: {data?.macro_f1 ?? "Not available"} · Weighted-F1: {data?.weighted_f1 ?? "Not available"}</p></div>;
+}
+
+function ClassDistribution({ data }: { data?: Record<string, any> }) {
+  const rows = Object.entries(data || {}).filter(([key, value]) => !["accuracy", "macro avg", "weighted avg"].includes(key) && value && typeof value === "object");
+  if (!rows.length) return <p className="mt-3 text-sm text-white/40">Class distribution is not available.</p>;
+  return <div className="mt-4 flex flex-wrap gap-2">{rows.map(([label, item]) => <div key={label} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white/65">{label.replace(/_/g, " ")} <span className="ml-2 font-mono text-white/40">n={item.support ?? "Not available"}</span></div>)}</div>;
+}
+
+function RequirementBrowser({ rows, loading, error, query, onQuery, domain, onDomain, offset, total, onOffset, selected, onSelect, onRetry }: any) {
+  return <div className="glass rounded-[1.4rem] p-4 sm:p-6">
+    <div className="flex flex-col gap-3 sm:flex-row"><label className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-white/10 bg-black/20 px-3 py-2.5"><Search className="h-4 w-4 shrink-0 text-white/35"/><span className="sr-only">Search requirements</span><input value={query} onChange={(e) => onQuery(e.target.value)} placeholder="Search requirement, document, authority, source chunk" className="w-full bg-transparent text-sm text-white placeholder:text-white/35 outline-none"/></label><label className="sr-only" htmlFor="requirement-domain">Filter by domain</label><input id="requirement-domain" value={domain} onChange={(e) => onDomain(e.target.value)} placeholder="Filter domain" className="rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white placeholder:text-white/35 outline-none sm:w-48"/></div>
+    {error && <div role="alert" className="mt-4 rounded-xl border border-rose-400/20 bg-rose-500/10 p-3 text-sm text-rose-200">{error} <button className="ml-2 underline" onClick={onRetry}>Retry</button></div>}
+    {loading ? <div className="mt-4 h-56 animate-pulse rounded-xl bg-white/[0.04]" aria-label="Loading requirements"/> : !rows.length ? <p className="py-10 text-center text-sm text-white/45">{error ? "Requirements could not be loaded." : "No traceable requirements match this search."}</p> : <>
+      <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead><tr className="border-b border-white/10 text-[10px] uppercase tracking-wider text-white/40"><th className="p-2">Requirement</th><th className="p-2">Domain</th><th className="p-2">Authority / document</th><th className="p-2">Source chunk</th><th className="p-2">Scenarios</th></tr></thead><tbody>{rows.map((r: any) => <tr key={r.requirement_id} className="border-b border-white/5 align-top"><td className="p-2"><button className="text-left text-accent hover:underline" onClick={() => onSelect(r)}>{r.requirement_id}</button><p className="mt-1 max-w-[380px] text-xs leading-5 text-white/50">{r.requirement_text}</p></td><td className="p-2 text-white/65">{r.domain || "Not available"}</td><td className="p-2 text-white/65">{r.authority || "Not available"}<p className="mt-1 text-xs text-white/40">{r.document_title || "Not available"}</p><p className="text-xs text-white/35">{r.section || ""}{r.page ? ` · p. ${r.page}` : ""}</p></td><td className="p-2 font-mono text-xs text-white/45">{r.source_chunk_id}</td><td className="p-2 tabular-nums text-white/65">{r.scenario_count}</td></tr>)}</tbody></table></div>
+      <div className="mt-4 flex items-center justify-between text-xs text-white/45"><span>{total.toLocaleString()} requirements · showing {offset + 1}–{Math.min(offset + rows.length, total)}</span><div className="flex gap-2"><button aria-label="Previous requirements" disabled={offset === 0} onClick={() => onOffset(Math.max(0, offset - 25))} className="rounded-lg border border-white/10 p-2 disabled:opacity-30"><ChevronLeft className="h-4 w-4"/></button><button aria-label="Next requirements" disabled={offset + 25 >= total} onClick={() => onOffset(offset + 25)} className="rounded-lg border border-white/10 p-2 disabled:opacity-30"><RightIcon className="h-4 w-4"/></button></div></div>
+    </>}
+    {selected && <div className="mt-4 rounded-xl border border-accent/20 bg-accent/[0.05] p-4"><div className="flex justify-between gap-3"><h3 className="font-semibold text-white">{selected.requirement_id} · source metadata</h3><button onClick={() => onSelect(null)} aria-label="Close requirement details" className="text-white/45">×</button></div><p className="mt-2 text-sm leading-6 text-white/65">{selected.requirement_text}</p><p className="mt-3 text-xs text-white/40">{selected.authority} · {selected.document_title} · {selected.section}{selected.page ? ` · p. ${selected.page}` : ""} · chunk {selected.source_chunk_id}</p><p className="mt-1 text-xs text-white/40">Expected outcomes: {(selected.expected_outcomes || []).join(", ") || "Not available"} · bank review status: {selected.review_status || "Not available"}</p></div>}
+  </div>;
 }
 
 function ArchCard({ title, body }: { title: string; body: string }) {
@@ -553,15 +645,19 @@ function CaseBrowser({
   title,
   cases,
   loading,
+  error,
   selectedId,
   onSelect,
+  onRetry,
   mode,
 }: {
   title: string;
   cases: any[];
   loading: boolean;
+  error?: string | null;
   selectedId?: string;
   onSelect: (c: any) => void;
+  onRetry?: () => void;
   mode: "grounding" | "robustness" | "comparison" | "human";
 }) {
   const selected = cases.find((c) => c.case_id === selectedId) || cases[0] || null;
@@ -573,6 +669,7 @@ function CaseBrowser({
           <h3 className="text-sm font-semibold text-white/80">{title}</h3>
           {loading && <Loader2 className="h-3.5 w-3.5 animate-spin text-accent" />}
         </div>
+        {error && <p role="alert" className="mb-3 text-xs text-rose-200">{error} <button type="button" onClick={onRetry} className="underline">Retry</button></p>}
         <div className="max-h-[520px] space-y-1.5 overflow-y-auto pr-1" style={{ scrollbarWidth: "thin" }}>
           {!loading && cases.length === 0 && (
             <p className="text-sm text-white/40">No cases available.</p>

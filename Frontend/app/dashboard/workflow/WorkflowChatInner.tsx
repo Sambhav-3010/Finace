@@ -8,6 +8,7 @@ import { WorkflowMessageList } from "@/components/workflow/WorkflowMessageList";
 import { WorkflowModeToggle } from "@/components/workflow/WorkflowModeToggle";
 import { NewChatOnboardingModal } from "@/components/workflow/NewChatOnboardingModal";
 import { GeneralXaiPromptModal } from "@/components/workflow/GeneralXaiPromptModal";
+import { IndependentMLValidationWorkspace } from "@/components/workflow/IndependentMLValidationWorkspace";
 
 export default function WorkflowChatPage() {
   const chat = useWorkflowChat();
@@ -48,6 +49,8 @@ export default function WorkflowChatPage() {
 
           {chat.studioMode === "analyze" ? (
         <AnalyzeTrustDashboard messages={chat.messages} />
+      ) : chat.studioMode === "ml-validation" ? (
+        <IndependentMLValidationWorkspace />
       ) : chat.empty ? (
         <WorkflowEmptyState
           input={chat.input}

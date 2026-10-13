@@ -28,9 +28,9 @@ import { chatHistoryApi } from "@/services/api";
 const items = [
   { href: "/dashboard" as Route, label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/workflow" as Route, label: "Analyze workflow", icon: MessageSquare },
+  { href: "/dashboard/ml-validation" as Route, label: "ML Validation", icon: BrainCircuit },
   { href: "/dashboard/regulations" as Route, label: "Regulations", icon: BookOpen },
   { href: "/dashboard/evaluator" as Route, label: "Reports & review", icon: Scale },
-  { href: "/dashboard/ml-validation" as Route, label: "ML Validation", icon: BrainCircuit },
   { href: "/dashboard/audit" as Route, label: "Proof ledger", icon: ScrollText },
 ];
 
@@ -86,7 +86,7 @@ export function DashboardSidebar({
 
   if (!open) {
     return (
-      <aside className="flex w-[56px] shrink-0 flex-col items-center gap-2 border-r border-white/[0.05] bg-[#080f0e]/80 backdrop-blur-xl py-3">
+      <aside className="flex w-[56px] shrink-0 flex-col items-center gap-2 border-r border-emerald-100/[0.07] bg-[#14231c]/95 backdrop-blur-xl py-3">
         <button
           type="button"
           onClick={onToggle}
@@ -113,7 +113,7 @@ export function DashboardSidebar({
   }
 
   return (
-    <aside className="flex w-[268px] shrink-0 flex-col border-r border-white/[0.05] bg-[#080f0e]/75 backdrop-blur-xl">
+      <aside className="flex w-[268px] shrink-0 flex-col border-r border-emerald-100/[0.07] bg-[#14231c]/95 backdrop-blur-xl">
       <div className="flex items-center justify-between gap-2 px-3 pt-4 pb-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-accent/25 bg-accent/10">
@@ -166,10 +166,11 @@ export function DashboardSidebar({
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] transition ${
+            aria-current={active ? "page" : undefined}
+            className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent ${
                 active
-                  ? "bg-accent/12 text-accent border border-accent/20"
-                  : "text-white/55 border border-transparent hover:bg-white/[0.04] hover:text-white"
+                  ? "bg-accent/[0.12] text-[#75b99a] border border-accent/25 shadow-sm shadow-black/10"
+                  : "text-white/65 border border-transparent hover:bg-white/[0.045] hover:text-white/90"
               }`}
             >
               <Icon className="h-4 w-4 shrink-0 opacity-80" />

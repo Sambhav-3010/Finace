@@ -9,16 +9,20 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        body: ["var(--font-body)"],
+        heading: ["var(--font-heading)"],
+      },
       colors: {
-        ink: "#090d0d",
-        panel: "#101716",
-        mist: "#eef2ef",
+        ink: "#101714",
+        panel: "#19221d",
+        surface: "#202b24",
+        mist: "#f1f5f2",
         accent: ACCENT_HEX,
-        emerald: "#15803d",
-        line: "rgba(255,255,255,0.09)",
+        line: "#2a3930",
       },
       boxShadow: {
-        glow: `0 20px 80px rgba(${ACCENT_RGB}, 0.2)`,
+        glow: `0 14px 44px rgba(${ACCENT_RGB}, 0.09)`,
       },
       backgroundImage: {
         dots: `radial-gradient(circle at center, rgba(${ACCENT_RGB}, 0.28) 0, rgba(${ACCENT_RGB}, 0.28) 1px, transparent 1px)`,

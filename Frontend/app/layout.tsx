@@ -29,7 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth">
       <body
-        className={`${heading.variable} ${body.variable} bg-ink font-[var(--font-body)] text-white antialiased`}
+        className={`${heading.variable} ${body.variable} bg-ink font-[var(--font-body)] text-mist antialiased`}
       >
         <StoreProvider>
           <AuthHydrator />

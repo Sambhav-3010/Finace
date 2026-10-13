@@ -142,7 +142,7 @@ export function Hero() {
                     key={item.label}
                     className="group flex items-center gap-3.5 rounded-2xl border border-white/8 bg-white/[0.03] px-4 py-3.5 text-left backdrop-blur-sm transition hover:border-accent/25 hover:bg-accent/[0.05]"
                   >
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-accent/25 bg-gradient-to-br from-accent/15 to-transparent shadow-[0_0_20px_rgba(74,222,128,0.08)] transition group-hover:border-accent/40">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-accent/20 bg-accent/[0.08] transition-colors duration-150 group-hover:border-accent/40 group-hover:bg-accent/[0.12]">
                       <item.Icon className="h-7 w-7" />
                     </div>
                     <div className="min-w-0">

@@ -17,4 +17,4 @@ export interface WorkflowMessage {
   };
 }
 
-export type StudioMode = "chat" | "analyze";
+export type StudioMode = "chat" | "analyze" | "ml-validation";

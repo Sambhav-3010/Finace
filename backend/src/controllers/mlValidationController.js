@@ -32,3 +32,18 @@ export async function getCase(req, res) {
   });
   res.json({ ok: true, ...data });
 }
+
+export async function listRequirements(req, res) {
+  const limit = Number(req.query.limit || 25);
+  const offset = Number(req.query.offset || 0);
+  const qs = new URLSearchParams({
+    q: String(req.query.q || "").slice(0, 200),
+    domain: String(req.query.domain || "").slice(0, 80),
+    limit: String(Number.isFinite(limit) ? Math.min(100, Math.max(1, limit)) : 25),
+    offset: String(Number.isFinite(offset) ? Math.max(0, offset) : 0),
+  });
+  const data = await getJson(`${env.fastApiBaseUrl}/ml-validation/requirements?${qs}`, {
+    timeoutMs: env.fastApiTimeoutMs,
+  });
+  res.json({ ok: true, ...data });
+}

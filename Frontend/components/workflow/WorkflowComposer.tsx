@@ -65,7 +65,7 @@ export function WorkflowComposer({
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4">
-      <div className="flex flex-col rounded-[24px] border border-white/10 bg-[#07100d]/88 backdrop-blur-xl shadow-glow focus-within:border-accent/35 transition">
+      <div className="flex flex-col rounded-2xl border border-emerald-100/10 bg-[#19221d]/95 backdrop-blur-xl shadow-glow focus-within:border-accent/45 transition-colors duration-150">
         <textarea
           ref={textareaRef}
           value={input}

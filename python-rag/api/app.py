@@ -109,7 +109,7 @@ async def ml_validation_dashboard() -> dict:
         return await run_in_threadpool(build_dashboard)
     except Exception as exc:
         logger.exception("ML validation dashboard failed")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(status_code=500, detail="ML validation dashboard is unavailable") from exc
 
 
 @app.get("/ml-validation/cases")
@@ -127,7 +127,7 @@ async def ml_validation_cases(
         )
     except Exception as exc:
         logger.exception("ML validation cases failed")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(status_code=500, detail="ML validation cases are unavailable") from exc
 
 
 @app.get("/ml-validation/cases/{case_id}")
@@ -143,7 +143,26 @@ async def ml_validation_case_detail(case_id: str) -> dict:
         raise
     except Exception as exc:
         logger.exception("ML validation case detail failed")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(status_code=500, detail="ML validation case is unavailable") from exc
+
+
+@app.get("/ml-validation/requirements")
+async def ml_validation_requirements(
+    q: str = Query(default="", max_length=200),
+    domain: str = Query(default="", max_length=80),
+    limit: int = Query(default=25, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> dict:
+    """Bounded, traceable regulatory requirements used by evaluated scenarios."""
+    try:
+        from ml_validation.dashboard_api import list_requirements
+
+        return await run_in_threadpool(
+            lambda: list_requirements(query=q, domain=domain, limit=limit, offset=offset)
+        )
+    except Exception as exc:
+        logger.exception("ML validation requirements failed")
+        raise HTTPException(status_code=500, detail="Unable to load regulatory requirements") from exc
 
 
 @app.get("/calibration/current", response_model=CalibrationCurrentResponse)
