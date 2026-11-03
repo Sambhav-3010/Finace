@@ -15,7 +15,10 @@ function buildMongoUri(uri, dbName) {
     const withDb = withoutSlash.includes(`/${dbName}`)
       ? withoutSlash
       : `${withoutSlash}/${dbName}`;
-    return query ? `${withDb}?${query}` : withDb;
+    const queryParams = new URLSearchParams(query);
+    if (!queryParams.has("authSource")) queryParams.set("authSource", "admin");
+    const queryString = queryParams.toString();
+    return queryString ? `${withDb}?${queryString}` : withDb;
   }
 
   const cleaned = raw.endsWith("/") ? raw.slice(0, -1) : raw;
